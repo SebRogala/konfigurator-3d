@@ -31,10 +31,10 @@ Price sizes as fixed size steps, each with its own surcharge. This is the Operat
 
 In stages 0 and 1, prices are mocked:
 
-1. Keep every mocked price in one data file.
-2. Shape that file on the pricing model above: one base price, plus a list of option groups. Each group holds a flat surcharge and its options.
-3. Compute the total with one pure function that reads that file and the current configuration.
-4. Read prices in components only through that function. Components hard-code no price.
+1. Keep every mocked price in one data file: `frontend/src/catalog/catalog.ts` (`MOCK_CATALOG`).
+2. Shape that data as the `Catalog` type in `frontend/src/model/catalog.ts`: one base price, plus option groups. Each group holds a flat surcharge and its options.
+3. Compute the total with the pure `totalPrice(catalog, selection)` in `frontend/src/model/pricing.ts`. `priceLines` in the same file gives the per-field lines that `totalPrice` sums.
+4. Read prices in components only through those functions, with the catalog passed in as an argument. Components hard-code no price.
 
-Stage 2 replaces the data source with the Medusa API. The pure function and the components stay unchanged.
-How stage 2 maps this shape to Medusa (for example, custom line-item pricing) is an open question in [README.md](README.md).
+Stage 2 replaces the catalog source with the Medusa API. The model functions and the components stay unchanged.
+The source-swap home and the Medusa mapping are in [architecture.md](architecture.md).

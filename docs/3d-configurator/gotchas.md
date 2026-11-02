@@ -1,6 +1,6 @@
 # Gotchas — three.js, React Three Fiber, drei
 
-Verified rules only: each comes from official docs or a community thread read during research.
+Verified rules only: each comes from official docs, a community thread read during research, or a failure reproduced in this project.
 Sources per rule id, and the rules still to verify, are in [gotchas-sources.md](gotchas-sources.md).
 The installed library versions are in `frontend/package.json`.
 Each rule carries a tag: the stage it applies from, and the trigger that makes it relevant.
@@ -24,12 +24,14 @@ Each rule carries a tag: the stage it applies from, and the trigger that makes i
   Why: `useTexture` caches by URL, so one mutation hits every panel that uses it.
 - **G7** `stage 1 · loading any colour map` Set colour space on texture maps yourself under R3F v9.
   Why: R3F v9 removed automatic sRGB conversion of texture props.
-- **G8** `stage 1 · glass` Make glass `MeshPhysicalMaterial` with `transmission: 1, opacity: 1, thickness: ~0.004, ior: 1.5`; keep a `transparent` fallback for low-end devices.
-  Why: opacity-only glass loses reflectivity; transmission adds an extra render of all opaque objects.
+- **G8** `stage 1 · glass` Make a pane with only opaque objects behind it `MeshPhysicalMaterial` with `transmission: 1, opacity: 1, thickness: ~0.004, ior: 1.5`. Make a pane with a transparent object behind it (a door in front of a glass shelf) `transparent` with low opacity instead.
+  Why: opacity-only glass loses reflectivity, but a transmissive pane leaves transparent objects behind it out of its render, which hid the glass shelf here.
 - **G9** `stage 1 · glass` Use MeshPhysicalMaterial transmission for flat clear glass, not drei `MeshTransmissionMaterial`.
   Why: its blur and chromatic aberration add nothing to a flat pane and still cost an extra pass.
 - **G10** `stage 1 · textures on tops and shelves` Set `texture.anisotropy = gl.capabilities.getMaxAnisotropy()` on directional maps.
   Why: surfaces seen at grazing angles go blurry and grey without anisotropy.
+- **G26** `stage 1 · any useTexture caller` Configure textures from drei `useTexture` after the hook returns (in a `useMemo`), not in its `onLoad` callback.
+  Why: `onLoad` does not run when the URLs are already cached, so a second caller's textures stayed `ClampToEdge` without sRGB, smearing UVs outside 0–1 and paling the wood.
 - **G11** `stage 1 · texture compression` Encode KTX2 colour maps as ETC1S and normal maps as UASTC, with a self-hosted Basis transcoder.
   Why: ETC1S mangles normal maps.
 
@@ -41,8 +43,8 @@ Each rule carries a tag: the stage it applies from, and the trigger that makes i
   Why: drei presets fetch from a CDN, and the drei docs say they are not meant for production.
 - **G14** `stage 1 · dark or glossy fronts` Add `<Lightformer>` softboxes inside `<Environment frames={1}>`.
   Why: dark fronts look flat when nothing bright is there to reflect.
-- **G15** `stage 1 · grounding the object` Use `<ContactShadows frames={1}>` or `<AccumulativeShadows>`, re-rendered when a parameter changes.
-  Why: a floating object reads as fake; contact shadows are expensive when rendered every frame.
+- **G15** `stage 1 · grounding the object` Ground the object with a soft shadow that follows its footprint and updates when a dimension changes. On the installed versions, use the blurred canvas-texture plane in `frontend/src/scene/FootprintShadow.tsx`.
+  Why: a floating object reads as fake. drei `ContactShadows` drew nothing on the installed versions, even with a red shadow colour.
 - **G16** `stage 1 · a dimension change` Re-frame with CameraControls `fitToBox(box, true)` on slider release, not on every tick.
   Why: refitting on every tick makes the view swim.
 - **G17** `stage 0 · orbit controls` Limit polar angles, azimuth (about ±100°) and distance.

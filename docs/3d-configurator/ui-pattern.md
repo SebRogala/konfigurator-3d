@@ -11,7 +11,7 @@ How the surcharges add up to the total is in [conventions.md](conventions.md) §
 
 ## Cabinet steps
 
-Proposal: the Operator may edit this list. It fits the [target product](scope.md#target-product).
+Decided: five steps, fitting the [target product](scope.md#target-product). `frontend/src/ui/steps.ts` (`STEPS`) holds them.
 
 | # | Step | Content |
 |---|---|---|
@@ -20,4 +20,5 @@ Proposal: the Operator may edit this list. It fits the [target product](scope.md
 | 3 | Fronty | front colour tiers: standard, premium, wood veneer |
 | 4 | Przeszklenie | glazed door on or off, and the glass type |
 | 5 | Uchwyty | handles |
-| 6 | Akcesoria | for example LED lighting, an extra glass shelf |
+
+Tier 2 adds a sixth step, Akcesoria, with the LED option described in [architecture.md](architecture.md) § "Decisions".

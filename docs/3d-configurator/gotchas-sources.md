@@ -1,6 +1,6 @@
 # Gotchas — sources and rules to verify
 
-Tags: [doc] official docs read during research · [forum] community thread read during research · [training] model training data, not re-checked · [unverified] inferred, no source found.
+Tags: [doc] official docs read during research · [forum] community thread read during research · [training] model training data, not re-checked · [unverified] inferred, no source found · [observed] reproduced in this project's code.
 
 ## Sources for the rules in gotchas.md
 
@@ -12,17 +12,18 @@ Tags: [doc] official docs read during research · [forum] community thread read 
 | G4 | https://discourse.threejs.org/t/fix-z-fighting-issues/13506 [forum] |
 | G5 | the G4 thread [forum]; https://r3f.docs.pmnd.rs/api/canvas [doc] |
 | G7, G24, G25 | https://r3f.docs.pmnd.rs/tutorials/v9-migration-guide [doc] |
-| G8 | https://threejs.org/docs/pages/MeshPhysicalMaterial.html [doc]; https://discourse.threejs.org/t/transmission-effect-pbr-material-performance/59274 [forum] |
+| G8 | https://threejs.org/docs/pages/MeshPhysicalMaterial.html [doc]; https://discourse.threejs.org/t/transmission-effect-pbr-material-performance/59274 [forum]; the shelf hidden behind a transmissive door, `frontend/src/scene/materials.ts` (door glass) [observed] |
 | G9 | https://drei.docs.pmnd.rs/shaders/mesh-transmission-material [doc]; https://discourse.threejs.org/t/meshtransmissionmaterial-poor-performances-urgent/68566 [forum] |
 | G10 | https://discourse.threejs.org/t/how-can-i-increase-texture-sharpness/204 [forum] |
 | G11 | https://github.com/klich3/threejs-gltf-with-compressions-sample ; https://forum.babylonjs.com/t/how-to-use-ktx2-basis-compressed-normals/16021 [forum] |
 | G12 | https://www.khronos.org/news/press/khronos-pbr-neutral-tone-mapper-released-for-true-to-life-color-rendering-of-3d-products ; https://r3f.docs.pmnd.rs/api/canvas [doc] |
 | G13, G14 | https://drei.docs.pmnd.rs/staging/environment [doc] |
-| G15 | https://drei.docs.pmnd.rs/staging/contact-shadows ; https://drei.docs.pmnd.rs/staging/accumulative-shadows [doc] |
+| G15 | https://drei.docs.pmnd.rs/staging/contact-shadows ; https://drei.docs.pmnd.rs/staging/accumulative-shadows [doc]; ContactShadows rendering nothing on three 0.187 / drei 10.7.9, `frontend/src/scene/FootprintShadow.tsx` [observed] |
 | G16 | https://github.com/yomotsu/camera-controls ; https://drei.docs.pmnd.rs/staging/bounds [doc] |
 | G17, G18 | https://github.com/yomotsu/camera-controls [doc]; G18 also https://r3f.docs.pmnd.rs/advanced/scaling-performance [doc] |
 | G19 | https://r3f.docs.pmnd.rs/advanced/scaling-performance ; https://r3f.docs.pmnd.rs/api/canvas [doc] |
 | G21, G22, G23 | https://r3f.docs.pmnd.rs/advanced/pitfalls [doc] |
+| G26 | `frontend/src/scene/materials.ts` (`useWoodMaps`), drei 10.7.9 [observed] |
 
 Details inside verified rules that are not verified themselves:
 
