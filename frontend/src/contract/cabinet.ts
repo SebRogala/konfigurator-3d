@@ -3,7 +3,8 @@
 // the catalog maps the user's selections to a ResolvedCabinet.
 
 /** Wood finish keys; the scene owns their textures. */
-export type WoodKey = 'oak-rustic' | 'oak-light' | 'walnut'
+export const WOOD_KEYS = ['oak-rustic', 'oak-light', 'walnut'] as const
+export type WoodKey = (typeof WOOD_KEYS)[number]
 
 export type FrontFinish =
   | { kind: 'colour'; hex: string } // painted / laminated front, rendered with a fine-grain normal/roughness map

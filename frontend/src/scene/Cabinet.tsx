@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import type { Material } from 'three'
 import type { ResolvedCabinet } from '../contract/cabinet'
-import { layoutCabinet, type BoxPart, type HandlePart } from './layout'
+import type { BoxPart, CabinetLayout, HandlePart } from './layout'
 import { panelGeometry } from './panelGeometry'
 import { useFrontMaterial, useGlassMaterial, useHandleMaterial, useShelfGlassMaterial, useWoodMaterial } from './materials'
 
@@ -31,8 +31,7 @@ function BarHandle({ part, material }: { part: HandlePart; material: Material })
   )
 }
 
-export function Cabinet({ cabinet }: { cabinet: ResolvedCabinet }) {
-  const layout = useMemo(() => layoutCabinet(cabinet), [cabinet])
+export function Cabinet({ cabinet, layout }: { cabinet: ResolvedCabinet; layout: CabinetLayout }) {
   const body = useWoodMaterial(cabinet.body)
   const front = useFrontMaterial(cabinet.front)
   const glass = useGlassMaterial(cabinet.glass)

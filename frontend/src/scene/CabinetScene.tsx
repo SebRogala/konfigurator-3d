@@ -4,11 +4,10 @@ import { CameraControls, Environment, Lightformer } from '@react-three/drei'
 import { NeutralToneMapping, type PerspectiveCamera } from 'three'
 import type { ResolvedCabinet } from '../contract/cabinet'
 import { Cabinet } from './Cabinet'
-import { layoutCabinet } from './layout'
+import { layoutCabinet, type CabinetLayout } from './layout'
 import { FootprintShadow } from './FootprintShadow'
 import { preloadSceneTextures } from './materials'
 
-const MM_PER_M = 1000
 const DEG = Math.PI / 180
 // The reference photo's 3/4 view: from the front-right, slightly above the cabinet's middle.
 const VIEW_AZIMUTH = 20 * DEG
@@ -35,13 +34,12 @@ function fitDistance([w, h, d]: [number, number, number], azimuth: number, fovDe
  * Orbit controls plus framing: refits distance and target when a dimension or the canvas aspect changes,
  * keeping the user's orbit angle (G16, G17).
  */
-function CameraRig({ cabinet, onReady }: { cabinet: ResolvedCabinet; onReady?: () => void }) {
+function CameraRig({ bounds, onReady }: { bounds: CabinetLayout['bounds']; onReady?: () => void }) {
   const controls = useRef<CameraControls>(null)
   const camera = useThree((s) => s.camera) as PerspectiveCamera
   const aspect = useThree((s) => s.size.width / Math.max(1, s.size.height))
   const invalidate = useThree((s) => s.invalidate)
   const first = useRef(true)
-  const bounds = useMemo(() => layoutCabinet(cabinet).bounds, [cabinet])
   const [w, h, d] = bounds.size
   // The widest fit any allowed azimuth can need on this canvas, so maxDistance never blocks a refit.
   const worstFit = Math.max(fitDistance([w, h, d], 0, camera.fov, aspect), fitDistance([w, h, d], MAX_AZIMUTH, camera.fov, aspect))
@@ -75,6 +73,8 @@ function CameraRig({ cabinet, onReady }: { cabinet: ResolvedCabinet; onReady?: (
 }
 
 export function CabinetScene({ cabinet, onReady }: { cabinet: ResolvedCabinet; onReady?: () => void }) {
+  // One layout per configuration feeds the meshes, the camera fit and the shadow.
+  const layout = useMemo(() => layoutCabinet(cabinet), [cabinet])
   return (
     <Canvas
       frameloop="demand"
@@ -94,9 +94,9 @@ export function CabinetScene({ cabinet, onReady }: { cabinet: ResolvedCabinet; o
         </Environment>
         {/* Directional key from the front-left: separates the front, side and top faces as in the reference. */}
         <directionalLight position={[-2.5, 3.5, 3]} intensity={2} />
-        <Cabinet cabinet={cabinet} />
-        <FootprintShadow width={cabinet.widthMm / MM_PER_M} depth={cabinet.depthMm / MM_PER_M} />
-        <CameraRig cabinet={cabinet} onReady={onReady} />
+        <Cabinet cabinet={cabinet} layout={layout} />
+        <FootprintShadow width={layout.bounds.size[0]} depth={layout.bounds.size[2]} />
+        <CameraRig bounds={layout.bounds} onReady={onReady} />
       </Suspense>
     </Canvas>
   )

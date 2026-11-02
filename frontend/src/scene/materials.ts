@@ -2,9 +2,8 @@ import { useEffect, useMemo } from 'react'
 import { useThree } from '@react-three/fiber'
 import { useTexture } from '@react-three/drei'
 import { Color, MeshPhysicalMaterial, MeshStandardMaterial, RepeatWrapping, SRGBColorSpace, Vector2, type Texture } from 'three'
-import type { FrontFinish, GlassKey, HandleKey, WoodKey } from '../contract/cabinet'
+import { WOOD_KEYS, type FrontFinish, type GlassKey, type HandleKey, type WoodKey } from '../contract/cabinet'
 
-const WOOD_KEYS: WoodKey[] = ['oak-rustic', 'oak-light', 'walnut']
 const woodUrls = (key: WoodKey) => ({
   map: `/textures/${key}/color.jpg`,
   normalMap: `/textures/${key}/normal.jpg`,
