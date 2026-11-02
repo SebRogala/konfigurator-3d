@@ -1,53 +1,66 @@
-import { useState } from 'react'
-import { Canvas } from '@react-three/fiber'
-import { ContactShadows, Grid, OrbitControls } from '@react-three/drei'
+import { lazy, Suspense, useMemo, useState, type ComponentType } from 'react'
+import type { ResolvedCabinet } from './contract/cabinet'
+import { DEFAULT_SELECTION, STEPS, type FieldId, type Selection } from './catalog/catalog'
+import { resolveCabinet } from './catalog/resolve'
+import { totalPrice } from './pricing/total'
+import { Header } from './ui/Header'
+import { StepPanel } from './ui/StepPanel'
+import { Summary } from './ui/Summary'
 
-const MIN_MM = 300
-const MAX_MM = 2000
-const MM_PER_M = 1000
+type SceneComponent = ComponentType<{ cabinet: ResolvedCabinet }>
+type SceneModule = { CabinetScene?: SceneComponent; default?: SceneComponent }
 
-type Dimension = 'width' | 'height' | 'depth'
+// The scene is built in parallel (WI-scene); render it once its file exists, a placeholder until then.
+const sceneModules = import.meta.glob<SceneModule>('./scene/CabinetScene.tsx')
+const sceneLoader = Object.values(sceneModules)[0]
+const CabinetScene = sceneLoader
+  ? lazy(() =>
+      sceneLoader().then((m) => {
+        const Scene = m.CabinetScene ?? m.default
+        if (!Scene) throw new Error('scene/CabinetScene.tsx exports no CabinetScene component')
+        return { default: Scene }
+      }),
+    )
+  : null
 
 export default function App() {
-  const [size, setSize] = useState<Record<Dimension, number>>({ width: 800, height: 1200, depth: 400 })
-  const [color, setColor] = useState('#c8a165')
+  const [selection, setSelection] = useState<Selection>(DEFAULT_SELECTION)
+  const [openStep, setOpenStep] = useState<string | null>(STEPS[0].id)
+  const [summaryOpen, setSummaryOpen] = useState(false)
+  const cabinet = useMemo(() => resolveCabinet(selection), [selection])
 
-  const [w, h, d] = [size.width / MM_PER_M, size.height / MM_PER_M, size.depth / MM_PER_M]
+  const select = (field: FieldId, optionId: string) => setSelection((s) => ({ ...s, [field]: optionId }))
 
   return (
-    <>
-      <div className="panel">
-        {(Object.keys(size) as Dimension[]).map((dim) => (
-          <label key={dim}>
-            {dim}
-            <input
-              type="range"
-              min={MIN_MM}
-              max={MAX_MM}
-              step={10}
-              value={size[dim]}
-              onChange={(e) => setSize({ ...size, [dim]: Number(e.target.value) })}
+    <div className="app">
+      <Header totalZl={totalPrice(selection)} onSummary={() => setSummaryOpen(true)} />
+      <main className="layout">
+        <div className="viewport">
+          {CabinetScene ? (
+            <Suspense fallback={<div className="viewport__placeholder">Wczytywanie widoku 3D…</div>}>
+              <CabinetScene cabinet={cabinet} />
+            </Suspense>
+          ) : (
+            <div className="viewport__placeholder">
+              Podgląd 3D: {cabinet.widthMm} × {cabinet.heightMm} × {cabinet.depthMm} mm
+            </div>
+          )}
+        </div>
+        <div className="steps">
+          {STEPS.map((step, i) => (
+            <StepPanel
+              key={step.id}
+              step={step}
+              index={i}
+              open={openStep === step.id}
+              onToggle={() => setOpenStep((cur) => (cur === step.id ? null : step.id))}
+              selection={selection}
+              onSelect={select}
             />
-            <span>{size[dim]} mm</span>
-          </label>
-        ))}
-        <label>
-          colour
-          <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
-        </label>
-      </div>
-      <Canvas shadows camera={{ position: [2.5, 2, 3], fov: 45 }}>
-        <color attach="background" args={['#f0f0f0']} />
-        <ambientLight intensity={0.5} />
-        <directionalLight position={[3, 5, 2]} intensity={1.5} castShadow />
-        <mesh position={[0, h / 2, 0]} castShadow>
-          <boxGeometry args={[w, h, d]} />
-          <meshStandardMaterial color={color} />
-        </mesh>
-        <ContactShadows position={[0, 0.001, 0]} opacity={0.5} scale={6} blur={2} far={3} />
-        <Grid args={[10, 10]} cellSize={0.1} sectionSize={1} infiniteGrid fadeDistance={15} />
-        <OrbitControls target={[0, 0.5, 0]} makeDefault />
-      </Canvas>
-    </>
+          ))}
+        </div>
+      </main>
+      {summaryOpen && <Summary selection={selection} onClose={() => setSummaryOpen(false)} />}
+    </div>
   )
 }
