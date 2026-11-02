@@ -1,4 +1,4 @@
-import { formatZl } from '../pricing/total'
+import { formatZl } from './format'
 
 export function Header({ totalZl, onSummary }: { totalZl: number; onSummary: () => void }) {
   return (

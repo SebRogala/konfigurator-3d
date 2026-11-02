@@ -1,9 +1,12 @@
-import { fields, isFieldActive, type Field, type FieldId, type Selection, type Step } from '../catalog/catalog'
-import { findChoice } from '../catalog/resolve'
-import { formatZl } from '../pricing/total'
+import type { Catalog, Field, FieldId, Selection } from '../model/catalog'
+import { choiceOf, findChoice } from '../model/resolve'
+import { isFieldActive } from '../model/rules'
+import { formatZl } from './format'
+import type { Step } from './steps'
 import { swatchStyle } from './Swatch'
 
 interface Props {
+  catalog: Catalog
   step: Step
   index: number
   open: boolean
@@ -12,10 +15,10 @@ interface Props {
   onSelect: (field: FieldId, optionId: string) => void
 }
 
-export function StepPanel({ step, index, open, onToggle, selection, onSelect }: Props) {
+export function StepPanel({ catalog, step, index, open, onToggle, selection, onSelect }: Props) {
   const summary = step.fields
     .filter((id) => isFieldActive(id, selection))
-    .map((id) => findChoice(fields[id] as Field<unknown>, selection[id]).option.name)
+    .map((id) => choiceOf(catalog, id, selection).option.name)
     .join(' · ')
 
   return (
@@ -29,7 +32,7 @@ export function StepPanel({ step, index, open, onToggle, selection, onSelect }: 
       {open && (
         <div className="step__body">
           {step.fields.filter((id) => isFieldActive(id, selection)).map((id) => (
-            <FieldView key={id} id={id} selection={selection} onSelect={onSelect} showLabel={step.fields.length > 1} />
+            <FieldView key={id} field={catalog.fields[id] as Field<unknown>} selection={selection} onSelect={onSelect} showLabel={step.fields.length > 1} />
           ))}
         </div>
       )}
@@ -37,12 +40,11 @@ export function StepPanel({ step, index, open, onToggle, selection, onSelect }: 
   )
 }
 
-function FieldView({ id, selection, onSelect, showLabel }: { id: FieldId; selection: Selection; onSelect: Props['onSelect']; showLabel: boolean }) {
-  const field = fields[id] as Field<unknown>
+function FieldView({ field, selection, onSelect, showLabel }: { field: Field<unknown>; selection: Selection; onSelect: Props['onSelect']; showLabel: boolean }) {
+  const id = field.id
   const selected = findChoice(field, selection[id])
-  const sizeLike = field.groups.every((g) => g.options.length === 1 && g.options[0].swatch.kind === 'label')
 
-  if (sizeLike) {
+  if (field.display === 'chips') {
     return (
       <div className="field" data-field={id}>
         {showLabel && <h3 className="group__name">{field.label}</h3>}

@@ -1,10 +1,12 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { DEFAULT_SELECTION, type Selection } from '../src/catalog/catalog.ts'
-import { formatZl, totalPrice } from '../src/pricing/total.ts'
+import { MOCK_CATALOG } from '../src/catalog/catalog.ts'
+import type { Selection } from '../src/model/catalog.ts'
+import { totalPrice } from '../src/model/pricing.ts'
+import { formatZl } from '../src/ui/format.ts'
 
 // Expected amounts are written from the mock price table (base 3290 zł), not recomputed from the catalog.
-const total = (patch: Partial<Selection> = {}) => totalPrice({ ...DEFAULT_SELECTION, ...patch })
+const total = (patch: Partial<Selection> = {}) => totalPrice(MOCK_CATALOG, { ...MOCK_CATALOG.defaultSelection, ...patch })
 
 test('default total is base plus the 1100 mm width and glazed-section surcharges', () => {
   assert.equal(total(), 3290 + 350 + 400)

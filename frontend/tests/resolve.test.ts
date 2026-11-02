@@ -1,8 +1,12 @@
 import { describe, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { REFERENCE_CABINET, type ResolvedCabinet } from '../src/contract/cabinet.ts'
-import { DEFAULT_SELECTION, type FieldId } from '../src/catalog/catalog.ts'
-import { resolveCabinet } from '../src/catalog/resolve.ts'
+import { MOCK_CATALOG } from '../src/catalog/catalog.ts'
+import type { FieldId, Selection } from '../src/model/catalog.ts'
+import { resolveCabinet as resolveWith } from '../src/model/resolve.ts'
+
+const DEFAULT_SELECTION = MOCK_CATALOG.defaultSelection
+const resolveCabinet = (sel: Selection) => resolveWith(MOCK_CATALOG, sel)
 
 test('default selection resolves to the reference cabinet', () => {
   assert.deepEqual(resolveCabinet(DEFAULT_SELECTION), REFERENCE_CABINET)

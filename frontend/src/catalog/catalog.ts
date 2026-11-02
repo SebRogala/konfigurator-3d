@@ -1,33 +1,10 @@
-// The one mock price/catalog file (stages 0–1). Shape per docs/3d-configurator/conventions.md § Pricing model:
+// The one mock price/catalog file (stages 0–1): a single Catalog value; stage 2 swaps the source.
+// Shape per docs/3d-configurator/conventions.md § Pricing model:
 // a base price plus option groups, each with one flat surcharge shared by all its options.
 import type { FrontFinish, GlassKey, GlazedSection, HandleKey, WoodKey } from '../contract/cabinet.ts'
+import type { Catalog, CatalogOption, Field, OptionGroup } from '../model/catalog.ts'
 
-/** How a tile is painted: a flat colour, a wood finish (CSS-rendered swatch) or a text label. */
-export type Swatch = { kind: 'colour'; hex: string } | { kind: 'wood'; wood: WoodKey } | { kind: 'label'; text: string }
-
-export interface CatalogOption<V> {
-  id: string
-  name: string
-  value: V
-  swatch: Swatch
-}
-
-export interface OptionGroup<V> {
-  id: string
-  name: string
-  surchargeZl: number
-  options: CatalogOption<V>[]
-}
-
-export interface Field<V> {
-  id: string
-  label: string
-  groups: OptionGroup<V>[]
-}
-
-export const BASE_PRICE_ZL = 3290
-
-export const DEPTH_MM = 420
+const DEPTH_MM = 420
 
 const sizeGroup = (mm: number, surchargeZl: number): OptionGroup<number> => ({
   id: `${mm}`,
@@ -52,30 +29,34 @@ const veneerFront = (w: WoodKey, name: string): CatalogOption<FrontFinish> => ({
   swatch: { kind: 'wood', wood: w },
 })
 
-export const width: Field<number> = {
+const width: Field<number> = {
   id: 'width',
   label: 'Szerokość',
+  display: 'chips',
   groups: [sizeGroup(900, 0), sizeGroup(1100, 350), sizeGroup(1300, 700)],
 }
 
-export const height: Field<number> = {
+const height: Field<number> = {
   id: 'height',
   label: 'Wysokość',
+  display: 'chips',
   groups: [sizeGroup(1600, 0), sizeGroup(1800, 450)],
 }
 
-export const body: Field<WoodKey> = {
+const body: Field<WoodKey> = {
   id: 'body',
   label: 'Korpus',
+  display: 'tiles',
   groups: [
     { id: 'oak', name: 'Dąb', surchargeZl: 0, options: [wood('oak-rustic', 'Dąb rustykalny'), wood('oak-light', 'Dąb jasny')] },
     { id: 'walnut', name: 'Orzech amerykański', surchargeZl: 900, options: [wood('walnut', 'Orzech amerykański')] },
   ],
 }
 
-export const front: Field<FrontFinish> = {
+const front: Field<FrontFinish> = {
   id: 'front',
   label: 'Fronty',
+  display: 'tiles',
   groups: [
     {
       id: 'standard',
@@ -107,9 +88,10 @@ export const front: Field<FrontFinish> = {
   ],
 }
 
-export const glazedSection: Field<GlazedSection> = {
+const glazedSection: Field<GlazedSection> = {
   id: 'glazedSection',
   label: 'Witryna',
+  display: 'tiles',
   groups: [
     {
       id: 'glazed',
@@ -129,18 +111,20 @@ export const glazedSection: Field<GlazedSection> = {
   ],
 }
 
-export const glass: Field<GlassKey> = {
+const glass: Field<GlassKey> = {
   id: 'glass',
   label: 'Szkło',
+  display: 'tiles',
   groups: [
     { id: 'clear', name: 'Szkło bezbarwne', surchargeZl: 0, options: [{ id: 'clear', name: 'Bezbarwne', value: 'clear', swatch: { kind: 'colour', hex: '#dfe9ec' } }] },
     { id: 'smoked', name: 'Szkło przydymione', surchargeZl: 250, options: [{ id: 'smoked', name: 'Przydymione', value: 'smoked', swatch: { kind: 'colour', hex: '#5d6366' } }] },
   ],
 }
 
-export const handle: Field<HandleKey> = {
+const handle: Field<HandleKey> = {
   id: 'handle',
   label: 'Uchwyty',
+  display: 'tiles',
   groups: [
     {
       id: 'bar',
@@ -160,38 +144,19 @@ export const handle: Field<HandleKey> = {
   ],
 }
 
-export const fields = { width, height, body, front, glazedSection, glass, handle }
-
-export type FieldId = keyof typeof fields
-
-/** The user's choice: one option id per field. */
-export type Selection = Record<FieldId, string>
-
-export interface Step {
-  id: string
-  title: string
-  fields: FieldId[]
-}
-
-export const STEPS: Step[] = [
-  { id: 'dimensions', title: 'Wymiary', fields: ['width', 'height'] },
-  { id: 'body', title: 'Korpus', fields: ['body'] },
-  { id: 'fronts', title: 'Fronty', fields: ['front'] },
-  { id: 'glazing', title: 'Przeszklenie', fields: ['glazedSection', 'glass'] },
-  { id: 'handles', title: 'Uchwyty', fields: ['handle'] },
-]
-
-/** The glass choice applies (and is priced) only when a section is glazed. */
-export const isFieldActive = (id: FieldId, selection: Selection): boolean =>
-  id !== 'glass' || selection.glazedSection !== 'none'
-
-/** Resolves to REFERENCE_CABINET. */
-export const DEFAULT_SELECTION: Selection = {
-  width: '1100',
-  height: '1600',
-  body: 'oak-rustic',
-  front: 'black',
-  glazedSection: 'left',
-  glass: 'clear',
-  handle: 'bar-black',
+export const MOCK_CATALOG: Catalog = {
+  basePriceZl: 3290,
+  description: `Szafka 2-segmentowa, gł. ${DEPTH_MM} mm`,
+  depthMm: DEPTH_MM,
+  fields: { width, height, body, front, glazedSection, glass, handle },
+  // Resolves to REFERENCE_CABINET (guarded by tests/resolve.test.ts).
+  defaultSelection: {
+    width: '1100',
+    height: '1600',
+    body: 'oak-rustic',
+    front: 'black',
+    glazedSection: 'left',
+    glass: 'clear',
+    handle: 'bar-black',
+  },
 }

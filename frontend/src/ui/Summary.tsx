@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react'
-import { BASE_PRICE_ZL, DEPTH_MM, type Selection } from '../catalog/catalog'
-import { formatZl, priceLines, totalPrice } from '../pricing/total'
+import type { Catalog, Selection } from '../model/catalog'
+import { priceLines, totalPrice } from '../model/pricing'
+import { formatZl } from './format'
 
 // Native modal <dialog>: focus containment, inert background and Escape come from showModal().
-export function Summary({ selection, onClose }: { selection: Selection; onClose: () => void }) {
+export function Summary({ catalog, selection, onClose }: { catalog: Catalog; selection: Selection; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null)
   const closeBtn = useRef<HTMLButtonElement>(null)
   // Captured on the first render only, so a StrictMode effect replay cannot overwrite it with the dialog's own button.
@@ -39,10 +40,10 @@ export function Summary({ selection, onClose }: { selection: Selection; onClose:
         <dl className="summary__list">
           <div className="summary__row">
             <dt>Cena bazowa</dt>
-            <dd>Szafka 2-segmentowa, gł. {DEPTH_MM} mm</dd>
-            <span>{formatZl(BASE_PRICE_ZL)}</span>
+            <dd>{catalog.description}</dd>
+            <span>{formatZl(catalog.basePriceZl)}</span>
           </div>
-          {priceLines(selection).map((l) => (
+          {priceLines(catalog, selection).map((l) => (
             <div className="summary__row" key={l.fieldId} data-line={l.fieldId}>
               <dt>{l.label}</dt>
               <dd>{l.optionName}</dd>
@@ -52,7 +53,7 @@ export function Summary({ selection, onClose }: { selection: Selection; onClose:
         </dl>
         <footer className="summary__total">
           <span>Cena całkowita</span>
-          <strong data-testid="summary-total">{formatZl(totalPrice(selection))}</strong>
+          <strong data-testid="summary-total">{formatZl(totalPrice(catalog, selection))}</strong>
         </footer>
       </div>
     </dialog>

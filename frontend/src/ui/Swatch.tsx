@@ -1,5 +1,5 @@
 import type { WoodKey } from '../contract/cabinet'
-import type { Swatch as SwatchSpec } from '../catalog/catalog'
+import type { Swatch as SwatchSpec } from '../model/catalog'
 
 // Tile renderings of the wood finishes: layered grain stripes over a base tone.
 const WOOD_TILE: Record<WoodKey, string> = {
