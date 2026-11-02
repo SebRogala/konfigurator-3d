@@ -1,0 +1,40 @@
+// Seam between the configurator UI/pricing and the 3D scene.
+// The scene renders a ResolvedCabinet and knows nothing about prices or option ids;
+// the catalog maps the user's selections to a ResolvedCabinet.
+
+/** Wood finish keys; the scene owns their textures. */
+export type WoodKey = 'oak-rustic' | 'oak-light' | 'walnut'
+
+export type FrontFinish =
+  | { kind: 'colour'; hex: string } // painted / laminated front, rendered with a fine-grain normal/roughness map
+  | { kind: 'wood'; wood: WoodKey } // wood-veneer front
+
+/** Which section carries the top panel + glazed door + lower door layout; 'none' keeps that layout with a solid upper door. */
+export type GlazedSection = 'left' | 'right' | 'none'
+
+export type GlassKey = 'clear' | 'smoked'
+
+export type HandleKey = 'bar-black' | 'bar-steel' | 'push'
+
+export interface ResolvedCabinet {
+  widthMm: number
+  heightMm: number
+  depthMm: number
+  body: WoodKey
+  front: FrontFinish
+  glazedSection: GlazedSection
+  glass: GlassKey
+  handle: HandleKey
+}
+
+/** The reference cabinet; the configurator's default state. */
+export const REFERENCE_CABINET: ResolvedCabinet = {
+  widthMm: 1100,
+  heightMm: 1600,
+  depthMm: 420,
+  body: 'oak-rustic',
+  front: { kind: 'colour', hex: '#1e1e1e' },
+  glazedSection: 'left',
+  glass: 'clear',
+  handle: 'bar-black',
+}
