@@ -1,0 +1,22 @@
+# Private material (kept locally, never published)
+.private/
+.agents/
+.claude/
+
+# Dependencies and build output
+node_modules/
+dist/
+
+# Environment files
+.env*
+!.env.example
+
+# OS and editor junk
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+.idea/
+.vscode/
+*.log

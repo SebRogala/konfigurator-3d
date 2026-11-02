@@ -1,0 +1,16 @@
+# Local dev without the shared infra stack (no Traefik, no external `infra`
+# network). Use it on its own, not as an override:
+#   docker compose -f docker-compose.standalone.yml up -d --build
+# Then open http://localhost:5173.
+name: konfigurator-standalone
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "127.0.0.1:5173:5173"

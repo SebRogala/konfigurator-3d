@@ -1,0 +1,26 @@
+# Local dev only. Requires the shared infra stack (Traefik on the external
+# `infra` network); see /var/www/infra/README.md. Production: see DEPLOY.md.
+services:
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    container_name: konfigurator_frontend
+    environment:
+      - VITE_HMR_CLIENT_PORT=443
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - infra
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.konfigurator-frontend.rule=Host(`konfigurator.dev.localhost`)"
+      - "traefik.http.routers.konfigurator-frontend.entrypoints=websecure"
+      - "traefik.http.routers.konfigurator-frontend.tls=true"
+      - "traefik.http.services.konfigurator-frontend.loadbalancer.server.port=5173"
+
+networks:
+  infra:
+    external: true
