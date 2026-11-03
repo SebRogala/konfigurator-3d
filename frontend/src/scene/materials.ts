@@ -5,11 +5,20 @@ import { WOOD_TILE_M } from './panelGeometry'
 import { Color, MeshPhysicalMaterial, MeshStandardMaterial, RepeatWrapping, SRGBColorSpace, Vector2, type Texture } from 'three'
 import { WOOD_KEYS, type FrontFinish, type GlassKey, type HandleKey, type WoodKey } from '../contract/cabinet'
 
-const woodUrls = (key: WoodKey) => ({
-  map: `/textures/${key}/color.jpg`,
-  normalMap: `/textures/${key}/normal.jpg`,
-  roughnessMap: `/textures/${key}/roughness.jpg`,
-})
+/**
+ * 'low' is the 256 px first-frame tier, swapped for 'full' once it loads (CabinetScene). Full colour maps are
+ * 1024 px on phone-width screens (the CSS breakpoint in index.css) and source size elsewhere.
+ */
+export type TextureTier = 'low' | 'full'
+export const PHONE = typeof matchMedia === 'function' && matchMedia('(max-width: 820px)').matches
+const woodUrls = (key: WoodKey, tier: TextureTier) => {
+  const dir = tier === 'low' ? `/textures/${key}/low` : `/textures/${key}`
+  return {
+    map: `${dir}/${tier === 'full' && PHONE ? 'color-1k' : 'color'}.webp`,
+    normalMap: `${dir}/normal.webp`,
+    roughnessMap: `${dir}/roughness.webp`,
+  }
+}
 /** Painted fronts borrow this wood's relief as their fine grain. */
 const FINE_GRAIN_SOURCE: WoodKey = 'oak-light'
 /** Fine grain repeats this many times more often than the wood veneer tile. */
@@ -17,8 +26,9 @@ const FINE_GRAIN_DENSITY = 3
 /** The grain albedo map averages about half brightness; this gain brings the front back to its chosen colour. */
 const GRAIN_ALBEDO_GAIN = 2
 
-export function preloadSceneTextures() {
-  for (const key of WOOD_KEYS) useTexture.preload(Object.values(woodUrls(key)))
+/** Starts loading every wood in one tier, so a later option change finds its maps cached. */
+export function preloadWoodTextures(tier: TextureTier) {
+  for (const key of WOOD_KEYS) useTexture.preload(Object.values(woodUrls(key, tier)))
 }
 
 type WoodMaps = Record<'map' | 'normalMap' | 'roughnessMap', Texture>
@@ -45,9 +55,9 @@ function configureWoodMaps(key: WoodKey, maps: WoodMaps, anisotropy: number): Wo
 
 // Configured after the hook returns: drei's onLoad callback does not run when the URLs are already cached,
 // which left a second caller's textures clamped and smeared outside 0–1.
-function useWoodMaps(key: WoodKey): WoodMaps {
+function useWoodMaps(key: WoodKey, tier: TextureTier): WoodMaps {
   const anisotropy = useThree((s) => s.gl.capabilities.getMaxAnisotropy())
-  const maps = useTexture(woodUrls(key)) as WoodMaps
+  const maps = useTexture(woodUrls(key, tier)) as WoodMaps
   return useMemo(() => configureWoodMaps(key, maps, anisotropy), [key, maps, anisotropy])
 }
 
@@ -56,8 +66,8 @@ function useDisposeOnReplace(resource: { dispose(): void }) {
   useEffect(() => () => resource.dispose(), [resource])
 }
 
-export function useWoodMaterial(key: WoodKey): MeshStandardMaterial {
-  const maps = useWoodMaps(key)
+export function useWoodMaterial(key: WoodKey, tier: TextureTier): MeshStandardMaterial {
+  const maps = useWoodMaps(key, tier)
   const material = useMemo(
     () => new MeshStandardMaterial({ ...maps, roughness: 1, normalScale: new Vector2(0.6, 0.6) }),
     [maps],
@@ -66,9 +76,9 @@ export function useWoodMaterial(key: WoodKey): MeshStandardMaterial {
   return material
 }
 
-export function useFrontMaterial(front: FrontFinish): MeshStandardMaterial {
-  const wood = useWoodMaterial(front.kind === 'wood' ? front.wood : FINE_GRAIN_SOURCE)
-  const grain = useWoodMaps(FINE_GRAIN_SOURCE)
+export function useFrontMaterial(front: FrontFinish, tier: TextureTier): MeshStandardMaterial {
+  const wood = useWoodMaterial(front.kind === 'wood' ? front.wood : FINE_GRAIN_SOURCE, tier)
+  const grain = useWoodMaps(FINE_GRAIN_SOURCE, tier)
   // G6: clone before changing repeat, the cached textures are shared with the oak-light body.
   const fine = useMemo(() => {
     const normalMap = grain.normalMap.clone()
@@ -154,4 +164,39 @@ export function useHandleMaterial(handle: HandleKey): MeshStandardMaterial {
   )
   useDisposeOnReplace(material)
   return material
+}
+
+const frontEdges = new WeakMap<MeshStandardMaterial, MeshStandardMaterial>()
+/**
+ * Shadowed edge finish for a front: its edge faces and the cap behind the door joints. Matte, darkened and with little
+ * environment reflection, so joints and front edges read dark instead of catching a bright specular line.
+ * One per front material, disposed with it.
+ */
+export function frontEdgeMaterial(face: MeshStandardMaterial): MeshStandardMaterial {
+  let edge = frontEdges.get(face)
+  if (!edge) {
+    edge = new MeshStandardMaterial({ color: face.color.clone().multiplyScalar(0.35), map: face.map, roughness: 1, metalness: 0, envMapIntensity: 0.15 })
+    const e = edge
+    face.addEventListener('dispose', () => e.dispose())
+    frontEdges.set(face, edge)
+  }
+  return edge
+}
+
+const shadowed = new WeakMap<MeshStandardMaterial, MeshStandardMaterial>()
+/**
+ * Body wood seen in shadow (the top reveal): same maps, darker and a little rougher. Fakes the occlusion a recessed
+ * strip gets in the photo, which the scene has no real-time AO for. One per body material, disposed with it.
+ */
+export function shadowedWoodMaterial(wood: MeshStandardMaterial): MeshStandardMaterial {
+  let m = shadowed.get(wood)
+  if (!m) {
+    m = wood.clone()
+    m.color.multiplyScalar(0.5)
+    m.roughness = Math.min(1, wood.roughness + 0.15)
+    const own = m
+    wood.addEventListener('dispose', () => own.dispose())
+    shadowed.set(wood, m)
+  }
+  return m
 }

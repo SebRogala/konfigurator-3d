@@ -2,11 +2,21 @@ import type { ResolvedCabinet } from '../contract/cabinet'
 import { Door } from './Door'
 import type { CabinetLayout } from './layout'
 import { Panel } from './parts'
-import { useFrontMaterial, useGlassMaterial, useHandleMaterial, useMetalMaterial, useShelfGlassMaterials, useWoodMaterial } from './materials'
+import { type TextureTier, useFrontMaterial, useGlassMaterial, useHandleMaterial, useMetalMaterial, useShelfGlassMaterials, useWoodMaterial } from './materials'
 
-export function Cabinet({ cabinet, layout, doorsOpen }: { cabinet: ResolvedCabinet; layout: CabinetLayout; doorsOpen: boolean }) {
-  const body = useWoodMaterial(cabinet.body)
-  const front = useFrontMaterial(cabinet.front)
+export function Cabinet({
+  cabinet,
+  layout,
+  doorsOpen,
+  tier,
+}: {
+  cabinet: ResolvedCabinet
+  layout: CabinetLayout
+  doorsOpen: boolean
+  tier: TextureTier
+}) {
+  const body = useWoodMaterial(cabinet.body, tier)
+  const front = useFrontMaterial(cabinet.front, tier)
   const glass = useGlassMaterial(cabinet.glass)
   const handle = useHandleMaterial(cabinet.handle)
   const shelfGlass = useShelfGlassMaterials()

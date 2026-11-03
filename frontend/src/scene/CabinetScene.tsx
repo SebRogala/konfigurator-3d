@@ -1,4 +1,4 @@
-import { Suspense, memo, useEffect, useImperativeHandle, useMemo, useRef, type ReactNode, type Ref } from 'react'
+import { Suspense, memo, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, type ReactNode, type Ref } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import { CameraControls, Environment, Lightformer } from '@react-three/drei'
 import { NeutralToneMapping, Spherical, Vector3, type PerspectiveCamera } from 'three'
@@ -8,11 +8,11 @@ import { Cabinet } from './Cabinet'
 import { layoutCabinet, type CabinetLayout } from './layout'
 import { FootprintShadow } from './FootprintShadow'
 import { fitDistance } from './cameraFit'
-import { preloadSceneTextures } from './materials'
+import { FOV_DEG, VIEW_AZIMUTH } from './viewFraming'
+import { PHONE, preloadWoodTextures, type TextureTier } from './materials'
 
 const DEG = Math.PI / 180
-// The reference photo's 3/4 view: from the front-right, slightly above the cabinet's middle.
-const VIEW_AZIMUTH = 20 * DEG
+// The reference photo's 3/4 view: from the front-right (VIEW_AZIMUTH, shared with the poster), slightly above the middle.
 const VIEW_POLAR = 80 * DEG
 const TARGET_HEIGHT_RATIO = 0.47
 /** View presets as [azimuth, polar]; 'three-quarter' is the default framing; 'top' looks straight down. */
@@ -25,17 +25,24 @@ const VIEW_PRESETS: Record<ViewPreset, [number, number]> = {
 }
 const BACKGROUND = '#f5f4f2'
 
-preloadSceneTextures()
+/** The studio HDRI per texture tier: box-averaged 256×128 for the first frame, 512×256 as full on phones. */
+const HDRI: Record<TextureTier, string> = {
+  low: '/textures/studio_small_09_256.hdr',
+  full: PHONE ? '/textures/studio_small_09_512.hdr' : '/textures/studio_small_09_1k.hdr',
+}
+
+// The first-frame tier is ~60 KB for all woods; full maps load per configuration, the rest after the first full frame.
+preloadWoodTextures('low')
 
 /**
- * Environment and key light. Memoized with no props: a re-render of <Environment frames={1}> with fresh
+ * Environment and key light. Memoized on the tier only: a re-render of <Environment frames={1}> with fresh
  * Lightformer props re-bakes the env map, which stalled the door swing for ~1 s under SwiftShader.
  */
-const StudioLighting = memo(function StudioLighting() {
+const StudioLighting = memo(function StudioLighting({ tier }: { tier: TextureTier }) {
   return (
     <>
       {/* G13/G14: self-hosted studio HDRI plus softboxes for the dark fronts to reflect. */}
-      <Environment files="/textures/studio_small_09_1k.hdr" frames={1} resolution={512} environmentIntensity={1.35}>
+      <Environment files={HDRI[tier]} frames={1} resolution={512} environmentIntensity={1.35}>
         <Lightformer form="rect" intensity={1.2} position={[0, 4, 1]} scale={[5, 3, 1]} rotation-x={Math.PI / 2} />
         <Lightformer form="rect" intensity={0.7} position={[-3, 1.5, 3]} scale={[2, 4, 1]} rotation-y={Math.PI - Math.PI / 4} />
         <Lightformer form="rect" intensity={0.6} position={[3, 1.5, 3.5]} scale={[2, 4, 1]} rotation-y={Math.PI + Math.PI / 4} />
@@ -174,6 +181,40 @@ function CameraRig({
   )
 }
 
+/** Performance marks the perf check (scripts/perf-check) reads: the first frame of each tier, once per page. */
+const TIER_MARK: Record<TextureTier, string> = { low: 'scene:first-frame', full: 'scene:full' }
+
+/** Lighting and cabinet in one texture tier; reports the tier once its first frame is on screen. */
+function SceneAssets({
+  tier,
+  onTier,
+  ...cabinetProps
+}: { tier: TextureTier; onTier?: (tier: TextureTier) => void } & Omit<Parameters<typeof Cabinet>[0], 'tier'>) {
+  const onTierRef = useRef(onTier)
+  useEffect(() => {
+    onTierRef.current = onTier
+  }, [onTier])
+  const { body, front } = cabinetProps.cabinet
+  const woods = `${body}|${front.kind === 'wood' ? front.wood : 'grain'}`
+  // A layout effect, not a passive one: React re-runs it when a re-suspended boundary reveals this subtree again,
+  // and the texture set (`woods`) changing re-reports too. The cleanup cancels a stale report.
+  useLayoutEffect(() => {
+    // Committed now, drawn on the next frame.
+    const frame = requestAnimationFrame(() => {
+      if (!performance.getEntriesByName(TIER_MARK[tier]).length) performance.mark(TIER_MARK[tier])
+      if (tier === 'full') preloadWoodTextures('full')
+      onTierRef.current?.(tier)
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [tier, woods])
+  return (
+    <>
+      <StudioLighting tier={tier} />
+      <Cabinet {...cabinetProps} tier={tier} />
+    </>
+  )
+}
+
 /**
  * `children` render inside the Canvas (used by the scene-check page's camera probe).
  * `doorsOpen` defaults to closed until the App passes it.
@@ -184,7 +225,8 @@ export function CabinetScene({
   children,
   doorsOpen = false,
   controlsRef,
-}: { cabinet: ResolvedCabinet; onReady?: () => void; children?: ReactNode } & Omit<SceneViewProps, 'doorsOpen'> & Partial<Pick<SceneViewProps, 'doorsOpen'>>) {
+  onTier,
+}: { cabinet: ResolvedCabinet; onReady?: () => void; onTier?: (tier: TextureTier) => void; children?: ReactNode } & Omit<SceneViewProps, 'doorsOpen'> & Partial<Pick<SceneViewProps, 'doorsOpen'>>) {
   // One layout per configuration feeds the meshes, the camera fit and the shadow.
   const layout = useMemo(() => layoutCabinet(cabinet), [cabinet])
   return (
@@ -192,12 +234,14 @@ export function CabinetScene({
       frameloop="demand"
       dpr={[1, 1.5]}
       gl={{ toneMapping: NeutralToneMapping, antialias: true }}
-      camera={{ fov: 30, near: 0.05, far: 30, position: [1.5, 1.2, 4] }}
+      camera={{ fov: FOV_DEG, near: 0.05, far: 30, position: [1.5, 1.2, 4] }}
     >
       <color attach="background" args={[BACKGROUND]} />
       <Suspense fallback={null}>
-        <StudioLighting />
-        <Cabinet cabinet={cabinet} layout={layout} doorsOpen={doorsOpen} />
+        {/* Progressive textures: the low tier shows while the full tier (or a newly picked wood) loads; same geometry. */}
+        <Suspense fallback={<SceneAssets tier="low" onTier={onTier} cabinet={cabinet} layout={layout} doorsOpen={doorsOpen} />}>
+          <SceneAssets tier="full" onTier={onTier} cabinet={cabinet} layout={layout} doorsOpen={doorsOpen} />
+        </Suspense>
         <FootprintShadow width={layout.bounds.size[0]} depth={layout.bounds.size[2]} />
         <CameraRig bounds={layout.bounds} onReady={onReady} controlsRef={controlsRef} />
         {children}

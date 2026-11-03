@@ -16,18 +16,39 @@ const BACK_BOARD = 0.012
 const BACK_PANEL_THICKNESS = 0.004 // HDF
 /** How far the back panel runs into the sides, top and bottom grooves (hidden inside them). */
 const BACK_PANEL_GROOVE = 0.008
-const FRONT_THICKNESS = 0.018
+const FRONT_THICKNESS = 0.022
 const FRONT_GAP = 0.003 // G4: keeps fronts off the carcass faces
-const FRONT_RECESS = 0.002
+/** Fronts sit inset behind the side boards' front faces, so a shadowed reveal frames them. */
+const FRONT_RECESS = 0.01
+/** The bottom rail steps back behind the side legs' front faces. */
+const BOTTOM_SETBACK = 0.006
+/** Depth of the separate edge piece on each side board's front, so it reads as its own thick piece. */
+const SIDE_FACE_DEPTH = 0.022
+/** Dark cap on the divider's front: the joint between the doors shows it instead of oak. */
+const DIVIDER_CAP = 0.002
 const FASCIA_RATIO = 0.13 // of the front zone height
 const GLAZED_DOOR_RATIO = 0.4
-const GLASS_FRAME = 0.016
-const GLASS_THICKNESS = 0.004
+/** Frameless glazed door: the pane fills the door opening; only a slim aluminium profile caps its vertical edges. */
+const GLASS_PROFILE = 0.004
+const GLASS_PROFILE_PROUD = 0.0005 // profile face just ahead of the pane's, so the faces never coincide
+/** Hairline joint between the stacked fascia, glazed/upper door and lower door, so they read as one piece. The doors swing about vertical axes, so it needs no swing clearance. */
+const STACK_JOINT = 0.0005
+const GLASS_THICKNESS = 0.005
 const HANDLE_FROM_DOOR_TOP = 0.075
 const HANDLE_EDGE_INSET = 0.035
 const HANDLE_LENGTH = 0.22
 const SHELF_GLASS_THICKNESS = 0.009 // thick slab, as in the reference
-const METAL_STRIP_HEIGHT = 0.008 // brushed strip under the top board across the front opening
+/** Short brushed inserts on the side boards' front faces, right under the top, at the opening's two top corners. */
+const METAL_INSERT_HEIGHT = 0.008
+const METAL_INSERT_DEPTH = 0.01 // let into the side board
+/** The oak reveal between the top and the fronts: same height as the inserts, set back behind the fronts' face. */
+const TOP_REVEAL_HEIGHT = 0.016
+const TOP_REVEAL_SETBACK = 0.011 // behind the fronts' face
+/** Dark reveal between each side board and the fronts beside it. */
+const SIDE_REVEAL = 0.004
+/** Inserts stop short of the side's outer and inner faces, so no exposed face coincides with the side piece's. */
+const METAL_INSERT_SIDE_INSET = 0.0005
+const METAL_INSERT_PROUD = 0.0005 // front face just ahead of the side's, so the faces never coincide
 /** Share of the inner width taken by the fascia + upper + lower section in the 'wide' split (measured on the reference). */
 const WIDE_SECTION_SHARE = 0.58
 
@@ -41,6 +62,8 @@ export interface BoxPart {
   size: Vec3
   position: Vec3
   grain: Axis
+  /** 'edge': every face takes the shadowed front-edge finish (the cap behind a joint). 'shadow': body wood in shadow (the top reveal). */
+  finish?: 'edge' | 'shadow'
 }
 
 export interface HandlePart {
@@ -61,7 +84,7 @@ export interface DoorUnit {
 }
 
 export interface CabinetLayout {
-  /** Carcass, fixed fronts (fascia, metal strip) and interior. */
+  /** Carcass, metal inserts, fixed fronts (fascia) and interior. */
   boxes: BoxPart[]
   doors: DoorUnit[]
   bounds: { size: Vec3; centre: Vec3 }
@@ -86,34 +109,43 @@ export function layoutCabinet(c: ResolvedCabinet): CabinetLayout {
   const yBottom = BASE_CLEARANCE + BOTTOM_BOARD
 
   // Carcass: butt joints, the top covers the sides, sides run to the floor as legs; the base between them is open.
-  box('side-left', 'body', 'y', -W / 2, xL, 0, yTop, back, front)
-  box('side-right', 'body', 'y', xR, W / 2, 0, yTop, back, front)
+  box('side-left', 'body', 'y', -W / 2, xL, 0, yTop, back, front - SIDE_FACE_DEPTH)
+  box('side-right', 'body', 'y', xR, W / 2, 0, yTop, back, front - SIDE_FACE_DEPTH)
+  box('side-face-left', 'body', 'y', -W / 2, xL, 0, yTop, front - SIDE_FACE_DEPTH, front)
+  box('side-face-right', 'body', 'y', xR, W / 2, 0, yTop, front - SIDE_FACE_DEPTH, front)
   box('top', 'body', 'x', -W / 2 - TOP_OVERHANG, W / 2 + TOP_OVERHANG, yTop, H, back, front + TOP_OVERHANG)
-  box('bottom', 'body', 'x', xL, xR, BASE_CLEARANCE, yBottom, back + BACK_BOARD, front)
+  box('bottom', 'body', 'x', xL, xR, BASE_CLEARANCE, yBottom, back + BACK_BOARD, front - BOTTOM_SETBACK)
   // Thin back panel set into the rebate: its edges run into the carcass grooves, its back face stays inside the
   // carcass's back plane, so a rear view shows the side/top back edges framing a recessed panel.
   box('back', 'body', 'y', xL - BACK_PANEL_GROOVE, xR + BACK_PANEL_GROOVE, yBottom - BACK_PANEL_GROOVE, yTop + BACK_PANEL_GROOVE, back + BACK_BOARD - BACK_PANEL_THICKNESS, back + BACK_BOARD)
 
   const frontBack = front - FRONT_RECESS - FRONT_THICKNESS
-  // The fronts' zone ends under the metal strip.
-  const yFrontTop = yTop - METAL_STRIP_HEIGHT
-  box('metal-strip', 'metal', 'x', xL, xR, yFrontTop, yTop, frontBack, front - FRONT_RECESS)
+  // A recessed oak strip under the top, across the opening, reads as a shadowed band; the fronts' zone ends under it.
+  const yFrontTop = yTop - TOP_REVEAL_HEIGHT
+  const zReveal = front - FRONT_RECESS - TOP_REVEAL_SETBACK
+  box('top-reveal', 'body', 'x', xL, xR, yFrontTop, yTop, zReveal - INNER_BOARD, zReveal)
+  boxes[boxes.length - 1].finish = 'shadow'
+  for (const [side, x0, x1] of [['left', -W / 2, xL], ['right', xR, W / 2]] as const)
+    box(`metal-insert-${side}`, 'metal', 'x', x0 + METAL_INSERT_SIDE_INSET, x1 - METAL_INSERT_SIDE_INSET, yTop - METAL_INSERT_HEIGHT, yTop, front - METAL_INSERT_DEPTH, front + METAL_INSERT_PROUD)
   // The fascia + upper + lower section sits in the glazed section, or on the left when none is glazed.
   const layoutSide = c.glazedSection === 'right' ? 'right' : 'left'
   const share = c.sectionSplit === 'wide' ? WIDE_SECTION_SHARE : 0.5
   const xMid = layoutSide === 'left' ? xL + (xR - xL) * share : xR - (xR - xL) * share
-  box('divider', 'body', 'y', xMid - INNER_BOARD / 2, xMid + INNER_BOARD / 2, yBottom, yTop, back + BACK_BOARD, frontBack - FRONT_GAP)
+  const zDividerFront = frontBack - FRONT_GAP - DIVIDER_CAP
+  box('divider', 'body', 'y', xMid - INNER_BOARD / 2, xMid + INNER_BOARD / 2, yBottom, yTop, back + BACK_BOARD, zDividerFront)
+  box('divider-cap', 'front', 'y', xMid - INNER_BOARD / 2, xMid + INNER_BOARD / 2, yBottom, yFrontTop, zDividerFront, frontBack - FRONT_GAP)
+  boxes[boxes.length - 1].finish = 'edge'
 
   const zoneH = yFrontTop - yBottom
   const yFasciaBottom = yFrontTop - zoneH * FASCIA_RATIO
   const yGlazedBottom = yFasciaBottom - zoneH * GLAZED_DOOR_RATIO
 
   const sections = [
-    { side: 'left' as const, x0: xL, x1: xMid },
-    { side: 'right' as const, x0: xMid, x1: xR },
+    { side: 'left' as const, x0: xL + SIDE_REVEAL, x1: xMid },
+    { side: 'right' as const, x0: xMid, x1: xR - SIDE_REVEAL },
   ]
-  const frontBox = (id: string, x0: number, x1: number, y0: number, y1: number) =>
-    box(id, 'front', 'y', x0 + FRONT_GAP / 2, x1 - FRONT_GAP / 2, y0 + FRONT_GAP / 2, y1 - FRONT_GAP / 2, frontBack, front - FRONT_RECESS)
+  const frontBox = (id: string, x0: number, x1: number, y0: number, y1: number, gapBelow = FRONT_GAP, gapAbove = FRONT_GAP) =>
+    box(id, 'front', 'y', x0 + FRONT_GAP / 2, x1 - FRONT_GAP / 2, y0 + gapBelow / 2, y1 - gapAbove / 2, frontBack, front - FRONT_RECESS)
   const handleZ = front - FRONT_RECESS
   // Handles sit toward each door's free edge (opposite its outer hinge), same inset on every door, so pairs mirror.
   const handleX = (s: (typeof sections)[number]) =>
@@ -128,8 +160,8 @@ export function layoutCabinet(c: ResolvedCabinet): CabinetLayout {
   }
 
   for (const s of sections) {
-    const sx0 = s.side === 'left' ? s.x0 : s.x0 + INNER_BOARD / 2
-    const sx1 = s.side === 'left' ? s.x1 - INNER_BOARD / 2 : s.x1
+    const sx0 = s.side === 'left' ? xL : s.x0 + INNER_BOARD / 2
+    const sx1 = s.side === 'left' ? s.x1 - INNER_BOARD / 2 : xR
     if (s.side !== layoutSide) {
       door(`door-tall-${s.side}`, s, () => {
         frontBox(`door-tall-${s.side}`, s.x0, s.x1, yBottom, yFrontTop)
@@ -139,7 +171,9 @@ export function layoutCabinet(c: ResolvedCabinet): CabinetLayout {
       })
       continue
     }
-    boxes.push({ id: 'fascia', role: 'front', grain: 'x', size: [s.x1 - s.x0 - FRONT_GAP, yFrontTop - yFasciaBottom - FRONT_GAP, FRONT_THICKNESS], position: [(s.x0 + s.x1) / 2, (yFrontTop + yFasciaBottom) / 2, frontBack + FRONT_THICKNESS / 2] })
+    const yF0 = yFasciaBottom + STACK_JOINT / 2
+    const yF1 = yFrontTop - FRONT_GAP / 2
+    boxes.push({ id: 'fascia', role: 'front', grain: 'x', size: [s.x1 - s.x0 - FRONT_GAP, yF1 - yF0, FRONT_THICKNESS], position: [(s.x0 + s.x1) / 2, (yF0 + yF1) / 2, frontBack + FRONT_THICKNESS / 2] })
     // Vitrine floor and its glass shelf, visible through the glazed door.
     box(`vitrine-floor-${s.side}`, 'body', 'x', sx0, sx1, yGlazedBottom - INNER_BOARD, yGlazedBottom, back + BACK_BOARD, frontBack - FRONT_GAP)
     const yShelf = (yGlazedBottom + yFasciaBottom) / 2
@@ -147,25 +181,24 @@ export function layoutCabinet(c: ResolvedCabinet): CabinetLayout {
 
     const gx0 = s.x0 + FRONT_GAP / 2
     const gx1 = s.x1 - FRONT_GAP / 2
-    const gy0 = yGlazedBottom + FRONT_GAP / 2
-    const gy1 = yFasciaBottom - FRONT_GAP / 2
+    const gy0 = yGlazedBottom + STACK_JOINT / 2
+    const gy1 = yFasciaBottom - STACK_JOINT / 2
     const z1 = front - FRONT_RECESS
     door('door-upper', s, () => {
       if (c.glazedSection === 'none') {
-        frontBox('door-upper', s.x0, s.x1, yGlazedBottom, yFasciaBottom)
+        frontBox('door-upper', s.x0, s.x1, yGlazedBottom, yFasciaBottom, STACK_JOINT, STACK_JOINT)
         return { id: 'handle-upper', position: [handleX(s), gy0 + HANDLE_FROM_DOOR_TOP * 0.6, handleZ], length: HANDLE_LENGTH }
       }
-      // Slim frame in the front finish, glass pane set in its middle.
-      box('glazed-frame-left', 'front', 'y', gx0, gx0 + GLASS_FRAME, gy0, gy1, frontBack, z1)
-      box('glazed-frame-right', 'front', 'y', gx1 - GLASS_FRAME, gx1, gy0, gy1, frontBack, z1)
-      box('glazed-frame-top', 'front', 'x', gx0 + GLASS_FRAME, gx1 - GLASS_FRAME, gy1 - GLASS_FRAME, gy1, frontBack, z1)
-      box('glazed-frame-bottom', 'front', 'x', gx0 + GLASS_FRAME, gx1 - GLASS_FRAME, gy0, gy0 + GLASS_FRAME, frontBack, z1)
-      const zGlass = frontBack + FRONT_THICKNESS / 2
-      box('glazed-pane', 'glass', 'x', gx0 + GLASS_FRAME - 0.001, gx1 - GLASS_FRAME + 0.001, gy0 + GLASS_FRAME - 0.001, gy1 - GLASS_FRAME + 0.001, zGlass - GLASS_THICKNESS / 2, zGlass + GLASS_THICKNESS / 2)
+      // Frameless pane flush with the fronts' face, edge to edge between the fascia and the lower door; its edges run
+      // 0.5 mm into the profiles so no glass edge face coincides with a profile face.
+      const zp0 = z1 - GLASS_THICKNESS - 0.002
+      box('glazed-profile-left', 'metal', 'y', gx0, gx0 + GLASS_PROFILE, gy0, gy1, zp0, z1 + GLASS_PROFILE_PROUD)
+      box('glazed-profile-right', 'metal', 'y', gx1 - GLASS_PROFILE, gx1, gy0, gy1, zp0, z1 + GLASS_PROFILE_PROUD)
+      box('glazed-pane', 'glass', 'x', gx0 + GLASS_PROFILE - 0.0005, gx1 - GLASS_PROFILE + 0.0005, gy0, gy1, z1 - GLASS_THICKNESS, z1)
       return undefined
     })
     door('door-lower', s, () => {
-      frontBox('door-lower', s.x0, s.x1, yBottom, yGlazedBottom)
+      frontBox('door-lower', s.x0, s.x1, yBottom, yGlazedBottom, FRONT_GAP, STACK_JOINT)
       return { id: 'handle-lower', position: [handleX(s), yGlazedBottom - HANDLE_FROM_DOOR_TOP, handleZ], length: HANDLE_LENGTH }
     })
   }

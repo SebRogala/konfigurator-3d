@@ -1,8 +1,9 @@
 // Mesh components shared by the carcass and the door units.
 import { useEffect, useMemo } from 'react'
-import type { Material } from 'three'
+import { MeshStandardMaterial, type Material } from 'three'
 import type { BoxPart, HandlePart } from './layout'
 import { panelGeometry } from './panelGeometry'
+import { frontEdgeMaterial, shadowedWoodMaterial } from './materials'
 
 const BAR = { section: 0.016, depth: 0.02, standoff: 0.026, post: 0.01, postInset: 0.022 }
 
@@ -10,7 +11,15 @@ export function Panel({ part, seed, material }: { part: BoxPart; seed: number; m
   const [w, h, d] = part.size
   const geometry = useMemo(() => panelGeometry([w, h, d], part.grain, seed), [w, h, d, part.grain, seed])
   useEffect(() => () => geometry.dispose(), [geometry])
-  return <mesh geometry={geometry} material={material} position={part.position} />
+  // Fronts: BoxGeometry groups are +x, -x, +y, -y (edges), then +z, -z (faces).
+  const finished = useMemo(() => {
+    if (!(material instanceof MeshStandardMaterial)) return material
+    if (part.finish === 'shadow') return shadowedWoodMaterial(material)
+    if (part.role !== 'front') return material
+    const edge = frontEdgeMaterial(material)
+    return part.finish === 'edge' ? edge : [edge, edge, edge, edge, material, material]
+  }, [part.role, part.finish, material])
+  return <mesh geometry={geometry} material={finished} position={part.position} />
 }
 
 export function BarHandle({ part, material }: { part: HandlePart; material: Material }) {

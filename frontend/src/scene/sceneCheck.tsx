@@ -21,6 +21,7 @@ const CONFIGS: Record<string, ResolvedCabinet> = {
   push: { ...REFERENCE_CABINET, handle: 'push' },
   'height-1800': { ...REFERENCE_CABINET, heightMm: 1800 },
   'split-equal': { ...REFERENCE_CABINET, sectionSplit: 'equal' },
+  'glazed-right-equal': { ...REFERENCE_CABINET, glazedSection: 'right', sectionSplit: 'equal' },
   'white-steel': { ...REFERENCE_CABINET, front: { kind: 'colour', hex: '#e8e4dc' }, handle: 'bar-steel' },
   'white-steel-widest': { ...REFERENCE_CABINET, widthMm: 1300, front: { kind: 'colour', hex: '#e8e4dc' }, handle: 'bar-steel' },
 }
@@ -32,6 +33,11 @@ if (!cabinet) throw new Error(`Unknown config "${name}"; known: ${Object.keys(CO
 const markReady = () => {
   // Two frames so the fitted camera and contact shadow are on screen before the shot.
   requestAnimationFrame(() => requestAnimationFrame(() => document.body.setAttribute('data-scene-ready', name)))
+}
+
+/** Shots must show full-resolution maps: a camera fit during the low texture tier waits for the full tier. */
+const markReadyAtFullTier = () => {
+  if (performance.getEntriesByName('scene:full').length) markReady()
 }
 
 interface CameraState {
@@ -111,7 +117,7 @@ export function SceneCheck() {
     }
   }, [])
   return (
-    <CabinetScene cabinet={current} onReady={markReady} doorsOpen={doorsOpen} controlsRef={controlsRef}>
+    <CabinetScene cabinet={current} onReady={markReadyAtFullTier} onTier={(tier) => tier === 'full' && markReady()} doorsOpen={doorsOpen} controlsRef={controlsRef}>
       <CameraProbe cabinet={current} />
     </CabinetScene>
   )

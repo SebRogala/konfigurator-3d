@@ -1,6 +1,7 @@
 # Texture sources
 
-Licences and resolutions differ per asset; each row states its own. The CC0 scans (ambientCG, Poly Haven) have colour maps re-encoded at 2048 px (JPEG q85) and normal (OpenGL) and roughness maps downscaled to 1024 px; `oak-rustic` is described in its row.
+Licences and resolutions differ per asset; each row states its own. The CC0 scans (ambientCG, Poly Haven) have colour maps at 2048 px and normal (OpenGL) and roughness maps downscaled to 1024 px; `oak-rustic` is described in its row.
+Shipped as WebP tiers built by `frontend/scripts/perf-check/texture-variants.py` from the original JPEGs in `frontend/assets-src/textures/` (not served): `color.webp` (desktop), `color-1k.webp` (phones), `normal.webp`, `roughness.webp`, `low/*.webp` (256 px first frame), `studio_small_09_256.hdr` (first-frame HDRI) and `studio_small_09_512.hdr` (phone HDRI), both box-averaged from the 1k file.
 
 | Folder / file | Asset id | URL | Licence |
 |---|---|---|---|
