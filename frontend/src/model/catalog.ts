@@ -1,11 +1,15 @@
 // The configurator's data model: the shape every catalog source (mock now, Medusa later) delivers.
-import type { FrontFinish, GlassKey, GlazedSection, HandleKey, WoodKey } from '../contract/cabinet.ts'
+import type { FrontFinish, GlassKey, GlazedSection, HandleKey, SectionSplit, WoodKey } from '../contract/cabinet.ts'
 
-export const FIELD_IDS = ['width', 'height', 'body', 'front', 'glazedSection', 'glass', 'handle'] as const
+export const RANGE_FIELD_IDS = ['width', 'height'] as const
+export const OPTION_FIELD_IDS = ['sectionSplit', 'body', 'front', 'glazedSection', 'glass', 'handle'] as const
+export const FIELD_IDS = [...RANGE_FIELD_IDS, ...OPTION_FIELD_IDS] as const
 
-export type FieldId = (typeof FIELD_IDS)[number]
+export type RangeFieldId = (typeof RANGE_FIELD_IDS)[number]
+export type OptionFieldId = (typeof OPTION_FIELD_IDS)[number]
+export type FieldId = RangeFieldId | OptionFieldId
 
-/** The user's choice: one option id per field. */
+/** The user's choice: a millimetre value (decimal string) per range field, an option id per option field. */
 export type Selection = Record<FieldId, string>
 
 /** How a tile is painted: a flat colour, a wood finish (CSS-rendered swatch) or a text label. */
@@ -26,18 +30,27 @@ export interface OptionGroup<V> {
   options: CatalogOption<V>[]
 }
 
-export interface Field<V> {
-  id: FieldId
+/** A dimension chosen in fixed steps; priced at a flat rate per step above the minimum. */
+export interface RangeField {
+  id: RangeFieldId
   label: string
-  /** chips: one option per group with its surcharge on the chip (size steps); tiles: swatch tiles under group headings. */
+  minMm: number
+  maxMm: number
+  stepMm: number
+  ratePerStepZl: number
+}
+
+export interface Field<V> {
+  id: OptionFieldId
+  label: string
+  /** chips: every option as a chip with its group's surcharge; tiles: swatch tiles under group headings. */
   display: 'chips' | 'tiles'
   groups: OptionGroup<V>[]
 }
 
 /** The contract value each field resolves to. */
 export interface FieldValues {
-  width: number
-  height: number
+  sectionSplit: SectionSplit
   body: WoodKey
   front: FrontFinish
   glazedSection: GlazedSection
@@ -50,6 +63,6 @@ export interface Catalog {
   /** Base product line shown in the summary. */
   description: string
   depthMm: number
-  fields: { [K in FieldId]: Field<FieldValues[K]> }
+  fields: { [K in RangeFieldId]: RangeField } & { [K in OptionFieldId]: Field<FieldValues[K]> }
   defaultSelection: Selection
 }

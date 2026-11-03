@@ -7,7 +7,7 @@ export interface Step {
 }
 
 export const STEPS: Step[] = [
-  { id: 'dimensions', title: 'Wymiary', fields: ['width', 'height'] },
+  { id: 'dimensions', title: 'Wymiary', fields: ['width', 'height', 'sectionSplit'] },
   { id: 'body', title: 'Korpus', fields: ['body'] },
   { id: 'fronts', title: 'Fronty', fields: ['front'] },
   { id: 'glazing', title: 'Przeszklenie', fields: ['glazedSection', 'glass'] },

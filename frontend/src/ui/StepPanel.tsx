@@ -1,5 +1,6 @@
 import type { Catalog, Field, FieldId, Selection } from '../model/catalog'
-import { choiceOf, findChoice } from '../model/resolve'
+import { findChoice, isRangeField, selectedName } from '../model/resolve'
+import { RangeInput } from './RangeInput'
 import { isFieldActive } from '../model/rules'
 import { formatZl } from './format'
 import type { Step } from './steps'
@@ -12,13 +13,14 @@ interface Props {
   open: boolean
   onToggle: () => void
   selection: Selection
-  onSelect: (field: FieldId, optionId: string) => void
+  /** value: an option id, or a snapped millimetre value as a decimal string for range fields. */
+  onSelect: (field: FieldId, value: string) => void
 }
 
 export function StepPanel({ catalog, step, index, open, onToggle, selection, onSelect }: Props) {
   const summary = step.fields
     .filter((id) => isFieldActive(id, selection))
-    .map((id) => choiceOf(catalog, id, selection).option.name)
+    .map((id) => selectedName(catalog, id, selection))
     .join(' · ')
 
   return (
@@ -31,9 +33,13 @@ export function StepPanel({ catalog, step, index, open, onToggle, selection, onS
       </button>
       {open && (
         <div className="step__body">
-          {step.fields.filter((id) => isFieldActive(id, selection)).map((id) => (
-            <FieldView key={id} field={catalog.fields[id] as Field<unknown>} selection={selection} onSelect={onSelect} showLabel={step.fields.length > 1} />
-          ))}
+          {step.fields.filter((id) => isFieldActive(id, selection)).map((id) =>
+            isRangeField(id) ? (
+              <RangeInput key={id} field={catalog.fields[id]} valueMm={Number(selection[id])} onChange={(mm) => onSelect(id, String(mm))} />
+            ) : (
+              <FieldView key={id} field={catalog.fields[id] as Field<unknown>} selection={selection} onSelect={onSelect} showLabel={step.fields.length > 1} />
+            ),
+          )}
         </div>
       )}
     </section>
@@ -49,8 +55,7 @@ function FieldView({ field, selection, onSelect, showLabel }: { field: Field<unk
       <div className="field" data-field={id}>
         {showLabel && <h3 className="group__name">{field.label}</h3>}
         <div className="chips">
-          {field.groups.map((g) => {
-            const o = g.options[0]
+          {field.groups.flatMap((g) => g.options.map((o) => ({ g, o }))).map(({ g, o }) => {
             const isSel = o.id === selected.option.id
             return (
               <button key={o.id} className={`chip${isSel ? ' is-selected' : ''}`} aria-pressed={isSel} data-option={o.id} onClick={() => onSelect(id, o.id)}>

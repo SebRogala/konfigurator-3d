@@ -1,17 +1,10 @@
 // The one mock price/catalog file (stages 0–1): a single Catalog value; stage 2 swaps the source.
 // Shape per docs/3d-configurator/conventions.md § Pricing model:
-// a base price plus option groups, each with one flat surcharge shared by all its options.
-import type { FrontFinish, GlassKey, GlazedSection, HandleKey, WoodKey } from '../contract/cabinet.ts'
-import type { Catalog, CatalogOption, Field, OptionGroup } from '../model/catalog.ts'
+// a base price, size ranges priced per step, plus option groups, each with one flat surcharge shared by all its options.
+import type { FrontFinish, GlassKey, GlazedSection, HandleKey, SectionSplit, WoodKey } from '../contract/cabinet.ts'
+import type { Catalog, CatalogOption, Field, RangeField } from '../model/catalog.ts'
 
 const DEPTH_MM = 420
-
-const sizeGroup = (mm: number, surchargeZl: number): OptionGroup<number> => ({
-  id: `${mm}`,
-  name: `${mm} mm`,
-  surchargeZl,
-  options: [{ id: `${mm}`, name: `${mm} mm`, value: mm, swatch: { kind: 'label', text: `${mm}` } }],
-})
 
 const wood = (id: WoodKey, name: string): CatalogOption<WoodKey> => ({ id, name, value: id, swatch: { kind: 'wood', wood: id } })
 
@@ -29,19 +22,10 @@ const veneerFront = (w: WoodKey, name: string): CatalogOption<FrontFinish> => ({
   swatch: { kind: 'wood', wood: w },
 })
 
-const width: Field<number> = {
-  id: 'width',
-  label: 'Szerokość',
-  display: 'chips',
-  groups: [sizeGroup(900, 0), sizeGroup(1100, 350), sizeGroup(1300, 700)],
-}
+// Sizes: 50 mm steps, priced per step above the minimum.
+const width: RangeField = { id: 'width', label: 'Szerokość', minMm: 900, maxMm: 1300, stepMm: 50, ratePerStepZl: 100 }
 
-const height: Field<number> = {
-  id: 'height',
-  label: 'Wysokość',
-  display: 'chips',
-  groups: [sizeGroup(1600, 0), sizeGroup(1800, 450)],
-}
+const height: RangeField = { id: 'height', label: 'Wysokość', minMm: 1600, maxMm: 1800, stepMm: 50, ratePerStepZl: 100 }
 
 const body: Field<WoodKey> = {
   id: 'body',
@@ -121,6 +105,23 @@ const glass: Field<GlassKey> = {
   ],
 }
 
+const sectionSplit: Field<SectionSplit> = {
+  id: 'sectionSplit',
+  label: 'Podział segmentów',
+  display: 'chips',
+  groups: [
+    {
+      id: 'split',
+      name: 'Podział segmentów',
+      surchargeZl: 0,
+      options: [
+        { id: 'wide', name: 'Szeroki segment z witryną', value: 'wide', swatch: { kind: 'label', text: 'wide' } },
+        { id: 'equal', name: 'Równe segmenty', value: 'equal', swatch: { kind: 'label', text: 'equal' } },
+      ],
+    },
+  ],
+}
+
 const handle: Field<HandleKey> = {
   id: 'handle',
   label: 'Uchwyty',
@@ -145,14 +146,15 @@ const handle: Field<HandleKey> = {
 }
 
 export const MOCK_CATALOG: Catalog = {
-  basePriceZl: 3290,
+  basePriceZl: 3240,
   description: `Szafka 2-segmentowa, gł. ${DEPTH_MM} mm`,
   depthMm: DEPTH_MM,
-  fields: { width, height, body, front, glazedSection, glass, handle },
+  fields: { width, height, sectionSplit, body, front, glazedSection, glass, handle },
   // Resolves to REFERENCE_CABINET (guarded by tests/resolve.test.ts).
   defaultSelection: {
     width: '1100',
     height: '1600',
+    sectionSplit: 'wide',
     body: 'oak-rustic',
     front: 'black',
     glazedSection: 'left',

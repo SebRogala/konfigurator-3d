@@ -125,3 +125,38 @@ h2, h3, h4, p { margin: 0; }
   .viewport { position: relative; top: 0; height: 52vh; }
   .steps { border-left: 0; padding: 12px; min-height: 0; }
 }
+
+/* Dimension ranges */
+.range { gap: 8px; }
+.range__head { display: flex; align-items: center; gap: 8px; }
+.range__head .group__price { margin-right: auto; }
+.range__box {
+  width: 92px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card);
+  font: inherit; font-size: 15px; font-weight: 650; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink);
+}
+.range__box:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.range__slider { width: 100%; accent-color: var(--accent); margin: 4px 0 0; }
+.range__limits { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+
+/* Viewer controls ("Sterowanie") */
+.app:fullscreen { overflow-y: auto; background: var(--paper); }
+.viewer { position: absolute; top: 14px; left: 14px; z-index: 2; }
+.viewer__toggle {
+  display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 999px;
+  background: rgba(255,255,255,.92); backdrop-filter: blur(6px); font-size: 13px; font-weight: 600; box-shadow: 0 2px 10px rgba(0,0,0,.06);
+}
+.viewer__toggle svg { width: 14px; height: 14px; }
+.viewer__toggle[aria-expanded="true"] { background: var(--bar); color: #fff; border-color: var(--bar); }
+.viewer__menu {
+  margin-top: 8px; width: 232px; padding: 14px; display: grid; gap: 8px; background: var(--card);
+  border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 10px 30px rgba(0,0,0,.12);
+}
+.viewer__label { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+.viewer__row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.viewer__btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); font-size: 13px; font-weight: 600; text-align: center; }
+.viewer__btn:hover { background: #ecebe8; }
+.viewer__btn--wide { justify-content: flex-start; }
+.viewer__btn .icon { flex: none; color: var(--ink-soft); }
+.viewer__row .viewer__btn { padding: 9px 6px; gap: 5px; }
+.viewer__sep { height: 1px; background: var(--line); margin: 4px 0; }
+.viewer button:focus-visible, .step__head:focus-visible, .tile:focus-visible, .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

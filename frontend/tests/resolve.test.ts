@@ -14,8 +14,9 @@ test('default selection resolves to the reference cabinet', () => {
 
 // Every catalog option → its contract value, written literally (one named case per option).
 const CASES: { field: FieldId; key: keyof ResolvedCabinet; options: [string, unknown][] }[] = [
-  { field: 'width', key: 'widthMm', options: [['900', 900], ['1100', 1100], ['1300', 1300]] },
-  { field: 'height', key: 'heightMm', options: [['1600', 1600], ['1800', 1800]] },
+  { field: 'width', key: 'widthMm', options: [['900', 900], ['950', 950], ['1100', 1100], ['1300', 1300]] },
+  { field: 'height', key: 'heightMm', options: [['1600', 1600], ['1750', 1750], ['1800', 1800]] },
+  { field: 'sectionSplit', key: 'sectionSplit', options: [['wide', 'wide'], ['equal', 'equal']] },
   { field: 'body', key: 'body', options: [['oak-rustic', 'oak-rustic'], ['oak-light', 'oak-light'], ['walnut', 'walnut']] },
   {
     field: 'front',
@@ -54,4 +55,8 @@ test('depth stays 420 mm whatever the size', () => {
 
 test('an unknown option id throws, naming the field', () => {
   assert.throws(() => resolveCabinet({ ...DEFAULT_SELECTION, front: 'pink' }), /Unknown option "pink" in field "front"/)
+})
+
+test('an off-step width throws instead of resolving', () => {
+  assert.throws(() => resolveCabinet({ ...DEFAULT_SELECTION, width: '1125' }), /Invalid value "1125" for range field "width"/)
 })

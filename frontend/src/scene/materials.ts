@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { useThree } from '@react-three/fiber'
 import { useTexture } from '@react-three/drei'
+import { WOOD_TILE_M } from './panelGeometry'
 import { Color, MeshPhysicalMaterial, MeshStandardMaterial, RepeatWrapping, SRGBColorSpace, Vector2, type Texture } from 'three'
 import { WOOD_KEYS, type FrontFinish, type GlassKey, type HandleKey, type WoodKey } from '../contract/cabinet'
 
@@ -22,8 +23,18 @@ export function preloadSceneTextures() {
 
 type WoodMaps = Record<'map' | 'normalMap' | 'roughnessMap', Texture>
 
-function configureWoodMaps(maps: WoodMaps, anisotropy: number): WoodMaps {
+/** Real-world length one texture repeat covers along the grain, per wood (grade is baked into each colour map). */
+const WOOD_REPEAT_M: Record<WoodKey, number> = {
+  'oak-rustic': 0.8,
+  'oak-light': WOOD_TILE_M,
+  walnut: WOOD_TILE_M,
+}
+
+function configureWoodMaps(key: WoodKey, maps: WoodMaps, anisotropy: number): WoodMaps {
+  // Panel UVs are in WOOD_TILE_M units; repeat rescales them to this wood's repeat length.
+  const repeat = WOOD_TILE_M / WOOD_REPEAT_M[key]
   for (const t of Object.values(maps)) {
+    t.repeat.set(repeat, repeat)
     t.wrapS = t.wrapT = RepeatWrapping
     t.anisotropy = anisotropy // G10
     t.needsUpdate = true
@@ -37,7 +48,7 @@ function configureWoodMaps(maps: WoodMaps, anisotropy: number): WoodMaps {
 function useWoodMaps(key: WoodKey): WoodMaps {
   const anisotropy = useThree((s) => s.gl.capabilities.getMaxAnisotropy())
   const maps = useTexture(woodUrls(key)) as WoodMaps
-  return useMemo(() => configureWoodMaps(maps, anisotropy), [maps, anisotropy])
+  return useMemo(() => configureWoodMaps(key, maps, anisotropy), [key, maps, anisotropy])
 }
 
 /** Disposes a resource this module created once it is replaced or unmounted (G20). */
@@ -45,18 +56,11 @@ function useDisposeOnReplace(resource: { dispose(): void }) {
   useEffect(() => () => resource.dispose(), [resource])
 }
 
-/** Colour grade per wood, multiplied into the albedo map: shifts the CC0 scan toward the target finish's tone. */
-const WOOD_GRADE: Record<WoodKey, [number, number, number]> = {
-  'oak-rustic': [1.3, 1.25, 1.08], // Wood066 is reddish-dark; the reference oak is a lighter golden-brown
-  'oak-light': [1, 1, 1],
-  walnut: [1, 1, 1],
-}
-
 export function useWoodMaterial(key: WoodKey): MeshStandardMaterial {
   const maps = useWoodMaps(key)
   const material = useMemo(
-    () => new MeshStandardMaterial({ ...maps, color: new Color(...WOOD_GRADE[key]), roughness: 1, normalScale: new Vector2(0.6, 0.6) }),
-    [maps, key],
+    () => new MeshStandardMaterial({ ...maps, roughness: 1, normalScale: new Vector2(0.6, 0.6) }),
+    [maps],
   )
   useDisposeOnReplace(material)
   return material
@@ -116,12 +120,26 @@ export function useGlassMaterial(glass: GlassKey): MeshPhysicalMaterial {
   return material
 }
 
-/** Glass shelf behind the door, always clear. */
-export function useShelfGlassMaterial(): MeshPhysicalMaterial {
-  const material = useMemo(
-    () => new MeshPhysicalMaterial({ color: new Color('#cfe6dc'), transparent: true, opacity: 0.35, depthWrite: false, roughness: 0.05, ior: 1.5, specularIntensity: 1 }),
+/**
+ * Thick glass shelf behind the door, as a per-face material list in BoxGeometry's group order (+x, -x, +y, -y, +z, -z):
+ * clear top and bottom faces, green-tinted denser edges like a real float-glass slab.
+ */
+export function useShelfGlassMaterials(): MeshPhysicalMaterial[] {
+  const [face, edge] = useMemo(
+    () => [
+      new MeshPhysicalMaterial({ color: new Color('#cfe6dc'), transparent: true, opacity: 0.3, depthWrite: false, roughness: 0.05, ior: 1.5, specularIntensity: 1 }),
+      new MeshPhysicalMaterial({ color: new Color('#5f9e82'), transparent: true, opacity: 0.85, depthWrite: false, roughness: 0.1, ior: 1.5, specularIntensity: 1 }),
+    ],
     [],
   )
+  useDisposeOnReplace(face)
+  useDisposeOnReplace(edge)
+  return useMemo(() => [edge, edge, face, face, edge, edge], [face, edge])
+}
+
+/** Brushed aluminium for the strip under the top board. */
+export function useMetalMaterial(): MeshStandardMaterial {
+  const material = useMemo(() => new MeshStandardMaterial({ color: '#a4a7aa', metalness: 1, roughness: 0.38 }), [])
   useDisposeOnReplace(material)
   return material
 }

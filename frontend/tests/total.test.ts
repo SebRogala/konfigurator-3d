@@ -5,16 +5,16 @@ import type { Selection } from '../src/model/catalog.ts'
 import { totalPrice } from '../src/model/pricing.ts'
 import { formatZl } from '../src/ui/format.ts'
 
-// Expected amounts are written from the mock price table (base 3290 zł), not recomputed from the catalog.
+// Expected amounts are written from the mock price table (base 3240 zł; width/height 100 zł per 50 mm above 900/1600), not recomputed from the catalog.
 const total = (patch: Partial<Selection> = {}) => totalPrice(MOCK_CATALOG, { ...MOCK_CATALOG.defaultSelection, ...patch })
 
 test('default total is base plus the 1100 mm width and glazed-section surcharges', () => {
-  assert.equal(total(), 3290 + 350 + 400)
+  assert.equal(total(), 3240 + 400 + 400)
 })
 
-test('every selected group surcharge adds to the base', () => {
+test('every range and group surcharge adds to the base', () => {
   const t = total({ width: '1300', height: '1800', body: 'walnut', front: 'veneer-oak-light', glass: 'smoked', handle: 'push' })
-  assert.equal(t, 3290 + 700 + 450 + 900 + 1200 + 400 + 250 + 290)
+  assert.equal(t, 3240 + 800 + 400 + 900 + 1200 + 400 + 250 + 290)
 })
 
 test('options in the same group cost the same', () => {
@@ -22,7 +22,7 @@ test('options in the same group cost the same', () => {
 })
 
 test('glass surcharge is dropped when no section is glazed', () => {
-  assert.equal(total({ glazedSection: 'none', glass: 'smoked' }), 3290 + 350)
+  assert.equal(total({ glazedSection: 'none', glass: 'smoked' }), 3240 + 400)
 })
 
 test('glass surcharge applies when a section is glazed', () => {
