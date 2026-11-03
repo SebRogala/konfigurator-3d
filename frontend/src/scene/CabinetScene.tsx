@@ -1,12 +1,13 @@
 import { Suspense, memo, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, type ReactNode, type Ref } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import { CameraControls, Environment, Lightformer } from '@react-three/drei'
-import { NeutralToneMapping, Spherical, Vector3, type PerspectiveCamera } from 'three'
+import { NeutralToneMapping, PCFShadowMap, Spherical, Vector3, type PerspectiveCamera } from 'three'
 import type { ResolvedCabinet } from '../contract/cabinet'
 import type { SceneControls, SceneViewProps, ViewPreset } from '../contract/sceneControls'
 import { Cabinet } from './Cabinet'
 import { layoutCabinet, type CabinetLayout } from './layout'
-import { FootprintShadow } from './FootprintShadow'
+import { BakedFloorShadow } from './BakedFloorShadow'
+import { KeyLight, StudioRenderer } from './StudioEffects'
 import { fitDistance } from './cameraFit'
 import { FOV_DEG, VIEW_AZIMUTH } from './viewFraming'
 import { PHONE, preloadWoodTextures, type TextureTier } from './materials'
@@ -24,6 +25,8 @@ const VIEW_PRESETS: Record<ViewPreset, [number, number]> = {
   top: [0, 0],
 }
 const BACKGROUND = '#f5f4f2'
+/** AO on desktop; `?ao=off` renders every frame as the moving (direct) frame, for the settle-frame pixel check. */
+const AMBIENT_OCCLUSION = !PHONE && new URLSearchParams(location.search).get('ao') !== 'off'
 
 /** The studio HDRI per texture tier: box-averaged 256×128 for the first frame, 512×256 as full on phones. */
 const HDRI: Record<TextureTier, string> = {
@@ -48,9 +51,9 @@ const StudioLighting = memo(function StudioLighting({ tier }: { tier: TextureTie
         <Lightformer form="rect" intensity={0.6} position={[3, 1.5, 3.5]} scale={[2, 4, 1]} rotation-y={Math.PI + Math.PI / 4} />
         {/* Broad soft wall behind the viewer: gives the dark fronts the sheen that shows their grain. */}
         <Lightformer form="rect" intensity={0.8} position={[0, 1.5, 6]} scale={[10, 5, 1]} rotation-y={Math.PI} />
+        {/* Narrow strip softbox to the viewer's left: the streak the glass and handles pick up in a studio shot. */}
+        <Lightformer form="rect" intensity={3} position={[-1.6, 1.4, 5]} scale={[0.35, 4, 1]} rotation-y={Math.PI} />
       </Environment>
-      {/* Directional key from the front-left: separates the front, side and top faces as in the reference. */}
-      <directionalLight position={[-2.5, 3.5, 3]} intensity={2} />
     </>
   )
 })
@@ -87,7 +90,7 @@ function CameraRig({
   const aspect = useThree((s) => s.size.width / Math.max(1, s.size.height))
   const invalidate = useThree((s) => s.invalidate)
   const gl = useThree((s) => s.gl)
-  const scene = useThree((s) => s.scene)
+  const advance = useThree((s) => s.advance)
   const first = useRef(true)
   // The user's zoom as distance ÷ fit. Changes only on user input (`control`: wheel, drag, pinch), never from a refit
   // animation in flight, so overlapping refits can't compound it.
@@ -157,13 +160,13 @@ function CameraRig({
         invalidate()
       },
       snapshot() {
-        // Render and read back in the same tick: no preserveDrawingBuffer needed.
-        gl.render(scene, camera)
+        // Render (through the AO composer when mounted) and read back in the same tick: no preserveDrawingBuffer needed.
+        advance(performance.now(), true)
         const url = gl.domElement.toDataURL('image/png')
         return fetch(url).then((r) => r.blob())
       },
     }),
-    [camera, gl, scene, invalidate],
+    [camera, gl, advance, invalidate],
   )
 
   return (
@@ -233,6 +236,7 @@ export function CabinetScene({
     <Canvas
       frameloop="demand"
       dpr={[1, 1.5]}
+      shadows={{ type: PCFShadowMap }}
       gl={{ toneMapping: NeutralToneMapping, antialias: true }}
       camera={{ fov: FOV_DEG, near: 0.05, far: 30, position: [1.5, 1.2, 4] }}
     >
@@ -242,7 +246,10 @@ export function CabinetScene({
         <Suspense fallback={<SceneAssets tier="low" onTier={onTier} cabinet={cabinet} layout={layout} doorsOpen={doorsOpen} />}>
           <SceneAssets tier="full" onTier={onTier} cabinet={cabinet} layout={layout} doorsOpen={doorsOpen} />
         </Suspense>
-        <FootprintShadow width={layout.bounds.size[0]} depth={layout.bounds.size[2]} />
+        {/* Directional key from the front-left: separates the front, side and top faces as in the reference. */}
+        <KeyLight bounds={layout.bounds} />
+        <StudioRenderer ambientOcclusion={AMBIENT_OCCLUSION} />
+        <BakedFloorShadow layout={layout} doorsOpen={doorsOpen} />
         <CameraRig bounds={layout.bounds} onReady={onReady} controlsRef={controlsRef} />
         {children}
       </Suspense>

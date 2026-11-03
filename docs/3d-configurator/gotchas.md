@@ -43,7 +43,7 @@ Each rule carries a tag: the stage it applies from, and the trigger that makes i
   Why: drei presets fetch from a CDN, and the drei docs say they are not meant for production.
 - **G14** `stage 1 · dark or glossy fronts` Add `<Lightformer>` softboxes inside `<Environment frames={1}>`.
   Why: dark fronts look flat when nothing bright is there to reflect.
-- **G15** `stage 1 · grounding the object` Ground the object with a soft shadow that follows its footprint and updates when a dimension changes. On the installed versions, use the blurred canvas-texture plane in `frontend/src/scene/FootprintShadow.tsx`.
+- **G15** `stage 1 · grounding the object` Ground the object with a soft shadow that follows its footprint and updates when a dimension changes. On the installed versions, bake the key light's shadow into a floor texture once the scene settles and blur it with a dense kernel (`frontend/src/scene/BakedFloorShadow.tsx`); a sparse blur leaves bands.
   Why: a floating object reads as fake. drei `ContactShadows` drew nothing on the installed versions, even with a red shadow colour.
 - **G16** `stage 1 · a dimension change` Re-frame with CameraControls `fitToBox(box, true)` on slider release, not on every tick.
   Why: refitting on every tick makes the view swim.

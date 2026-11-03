@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import type { Group, Material } from 'three'
 import type { BoxPart, DoorUnit } from './layout'
 import { BarHandle, Panel } from './parts'
+import { markAnimating } from './motion'
 
 const OPEN_ANGLE = (100 * Math.PI) / 180
 const SWING_SECONDS = 0.6
@@ -54,6 +55,8 @@ export function Door({
       const elapsed = (performance.now() - start.current.time) / 1000 / SWING_SECONDS
       const p = start.current.progress
       progress.current = target > p ? Math.min(target, p + elapsed) : Math.max(target, p - elapsed)
+      // Holds AO, the shadow refresh and the floor bake until the swing ends; the next frame is the settled one.
+      markAnimating()
       invalidate()
     }
     g.rotation.y = direction * OPEN_ANGLE * easeInOutCubic(progress.current)

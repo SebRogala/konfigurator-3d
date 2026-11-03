@@ -1,5 +1,6 @@
 // First-load timings on an emulated phone: Pixel 7, CPU ×4 slower, DevTools "Fast 3G" network (via CDP).
-// Usage: PLAYWRIGHT_DIR=<dir holding node_modules/playwright@1.56.1> node measure.mjs <baseUrl> [runs=3] [shotDir]
+// Usage: PLAYWRIGHT_DIR=<dir holding node_modules/playwright@1.56.1> [PROFILE=desktop] node measure.mjs <baseUrl> [runs=3] [shotDir]
+// PROFILE=desktop: 1440×900, no CPU or network throttling.
 // Serve the production build first: npm run build && node scripts/perf-check/serve.mjs dist 4180
 // Reports the median of the runs:
 //   fcp           first-contentful-paint (Paint Timing API)
@@ -42,13 +43,16 @@ async function darkShare(png) {
 }
 
 async function run(i) {
-  const context = await browser.newContext({ ...devices['Pixel 7'] })
+  const desktop = process.env.PROFILE === 'desktop'
+  const context = await browser.newContext(desktop ? { viewport: { width: 1440, height: 900 } } : { ...devices['Pixel 7'] })
   const page = await context.newPage()
   const cdp = await context.newCDPSession(page)
   await cdp.send('Network.enable')
   await cdp.send('Network.setCacheDisabled', { cacheDisabled: true })
-  await cdp.send('Network.emulateNetworkConditions', FAST_3G)
-  await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU_SLOWDOWN })
+  if (!desktop) {
+    await cdp.send('Network.emulateNetworkConditions', FAST_3G)
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU_SLOWDOWN })
+  }
 
   const urls = new Map()
   const finished = [] // { t, bytes, url }

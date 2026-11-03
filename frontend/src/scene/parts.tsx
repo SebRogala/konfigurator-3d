@@ -19,7 +19,9 @@ export function Panel({ part, seed, material }: { part: BoxPart; seed: number; m
     const edge = frontEdgeMaterial(material)
     return part.finish === 'edge' ? edge : [edge, edge, edge, edge, material, material]
   }, [part.role, part.finish, material])
-  return <mesh geometry={geometry} material={finished} position={part.position} />
+  // Glass stays out of the shadow map: a real pane casts almost no shadow.
+  const opaque = ![finished].flat().every((m) => m.transparent)
+  return <mesh geometry={geometry} material={finished} position={part.position} castShadow={opaque} receiveShadow />
 }
 
 export function BarHandle({ part, material }: { part: HandlePart; material: Material }) {
@@ -27,11 +29,11 @@ export function BarHandle({ part, material }: { part: HandlePart; material: Mate
   const postX = part.length / 2 - BAR.postInset
   return (
     <group position={[x, y, z]}>
-      <mesh material={material} position={[0, 0, BAR.standoff + BAR.depth / 2]}>
+      <mesh material={material} position={[0, 0, BAR.standoff + BAR.depth / 2]} castShadow>
         <boxGeometry args={[part.length, BAR.section, BAR.depth]} />
       </mesh>
       {[-postX, postX].map((px) => (
-        <mesh key={px} material={material} position={[px, 0, BAR.standoff / 2]}>
+        <mesh key={px} material={material} position={[px, 0, BAR.standoff / 2]} castShadow>
           <boxGeometry args={[BAR.post, BAR.post, BAR.standoff]} />
         </mesh>
       ))}

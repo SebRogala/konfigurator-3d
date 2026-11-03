@@ -58,6 +58,8 @@ declare global {
     doorAngles?: () => Record<string, number>
     /** Orbits to exact angles (radians) without animation, for 360° evidence shots. */
     setCameraAngles?: (azimuth: number, polar: number) => void
+    /** Places eye and target exactly (metres) without animation, for close-up evidence shots. */
+    setCameraLookAt?: (eye: [number, number, number], target: [number, number, number]) => void
     /** Swaps the rendered cabinet without reloading, so interact.mjs can check what a live option change does to the camera. */
     setSceneConfig?: (name: string) => void
     /** The scene's viewer controls (setView, snapshot), for interact.mjs. */
@@ -85,6 +87,13 @@ function CameraProbe({ cabinet: c }: { cabinet: ResolvedCabinet }) {
     window.setCameraAngles = (azimuth, polar) => {
       if (!controls) throw new Error('Camera controls not mounted')
       void controls.rotateTo(azimuth, polar, false)
+      invalidate()
+    }
+    window.setCameraLookAt = (eye, target) => {
+      if (!controls) throw new Error('Camera controls not mounted')
+      // The orbit's distance limits would clamp a close-up.
+      controls.minDistance = 0
+      void controls.setLookAt(...eye, ...target, false)
       invalidate()
     }
   }, [controls, invalidate])

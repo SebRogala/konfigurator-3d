@@ -132,15 +132,16 @@ export function useGlassMaterial(glass: GlassKey): MeshPhysicalMaterial {
 
 /**
  * Thick glass shelf behind the door, as a per-face material list in BoxGeometry's group order (+x, -x, +y, -y, +z, -z):
- * clear top and bottom faces, green-tinted denser edges like a real float-glass slab.
+ * clear top and bottom faces, green-tinted denser edges like a real float-glass slab. `lit`: the vitrine light
+ * catches the front edge with a faint warm glow (interiorOcclusion.ts owns the light itself).
  */
-export function useShelfGlassMaterials(): MeshPhysicalMaterial[] {
+export function useShelfGlassMaterials(lit: boolean): MeshPhysicalMaterial[] {
   const [face, edge] = useMemo(
     () => [
       new MeshPhysicalMaterial({ color: new Color('#cfe6dc'), transparent: true, opacity: 0.3, depthWrite: false, roughness: 0.05, ior: 1.5, specularIntensity: 1 }),
-      new MeshPhysicalMaterial({ color: new Color('#5f9e82'), transparent: true, opacity: 0.85, depthWrite: false, roughness: 0.1, ior: 1.5, specularIntensity: 1 }),
+      new MeshPhysicalMaterial({ color: new Color('#5f9e82'), transparent: true, opacity: 0.85, depthWrite: false, roughness: 0.1, ior: 1.5, specularIntensity: 1, emissive: new Color(lit ? '#ffb46b' : '#000000'), emissiveIntensity: 0.25 }),
     ],
-    [],
+    [lit],
   )
   useDisposeOnReplace(face)
   useDisposeOnReplace(edge)

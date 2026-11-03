@@ -1,7 +1,10 @@
+import { useLayoutEffect } from 'react'
+import { useThree } from '@react-three/fiber'
 import type { ResolvedCabinet } from '../contract/cabinet'
 import { Door } from './Door'
 import type { CabinetLayout } from './layout'
 import { Panel } from './parts'
+import { applyInteriorShading } from './interiorOcclusion'
 import { type TextureTier, useFrontMaterial, useGlassMaterial, useHandleMaterial, useMetalMaterial, useShelfGlassMaterials, useWoodMaterial } from './materials'
 
 export function Cabinet({
@@ -19,8 +22,14 @@ export function Cabinet({
   const front = useFrontMaterial(cabinet.front, tier)
   const glass = useGlassMaterial(cabinet.glass)
   const handle = useHandleMaterial(cabinet.handle)
-  const shelfGlass = useShelfGlassMaterials()
+  const shelfGlass = useShelfGlassMaterials(cabinet.glazedSection !== 'none')
   const metal = useMetalMaterial()
+  const invalidate = useThree((s) => s.invalidate)
+  const { interior, vitrine } = layout
+  useLayoutEffect(() => {
+    applyInteriorShading(body, interior, vitrine)
+    invalidate()
+  }, [body, interior, vitrine, invalidate])
   const byRole = { body, front, glass, 'shelf-glass': shelfGlass, metal }
 
   return (

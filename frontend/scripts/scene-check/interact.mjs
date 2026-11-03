@@ -2,6 +2,7 @@
 // Usage: PLAYWRIGHT_DIR=<dir with playwright@1.56.1> node interact.mjs <baseUrl> <outDir>
 import { createRequire } from 'node:module'
 import { mkdirSync } from 'node:fs'
+import { SETTLE_LIMITS, compareSettle } from './settle-compare.mjs'
 
 if (!process.env.PLAYWRIGHT_DIR) throw new Error('Set PLAYWRIGHT_DIR')
 const { chromium } = createRequire(`${process.env.PLAYWRIGHT_DIR}/`)('playwright')
@@ -240,6 +241,21 @@ for (const c of ['reference', 'split-equal', 'glazed-right-smoked']) {
   await settle()
   await page.screenshot({ path: `${out}/handles-${c}.png`, clip: { x: 0, y: 380, width: 900, height: 420 } })
   console.log('shot', `handles-${c}`)
+}
+
+// Settled (AO) frame vs moving (direct) frame at the same camera: only occlusion may differ.
+{
+  const frame = async (query) => {
+    await page.goto(`${base}/scene-check.html?config=reference${query}`)
+    await page.waitForSelector('body[data-scene-ready]', { timeout: 120000 })
+    await settle()
+    return page.screenshot()
+  }
+  const moving = await frame('&ao=off')
+  const settled = await frame('')
+  const st = await compareSettle(page, moving, settled)
+  console.log(`settle pair: darker ${(st.darker * 100).toFixed(2)} %, brighter ${(st.brighter * 100).toFixed(2)} %, hue drift ${(st.hue * 100).toFixed(2)} %`)
+  if (st.brighter > SETTLE_LIMITS.brighter || st.hue > SETTLE_LIMITS.hue) failures.push('settle pair: the settled frame changes more than occlusion')
 }
 
 await browser.close()

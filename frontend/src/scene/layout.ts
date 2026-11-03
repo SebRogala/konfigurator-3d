@@ -88,6 +88,10 @@ export interface CabinetLayout {
   boxes: BoxPart[]
   doors: DoorUnit[]
   bounds: { size: Vec3; centre: Vec3 }
+  /** The carcass cavity behind the fronts: inner faces of the sides, bottom, top and back. */
+  interior: { min: Vec3; max: Vec3 }
+  /** The glazed compartment (behind the glass door, between the vitrine floor and the fascia); null when none is glazed. */
+  vitrine: { min: Vec3; max: Vec3 } | null
 }
 
 export function layoutCabinet(c: ResolvedCabinet): CabinetLayout {
@@ -95,6 +99,7 @@ export function layoutCabinet(c: ResolvedCabinet): CabinetLayout {
   const H = c.heightMm / MM_PER_M
   const D = c.depthMm / MM_PER_M
   const boxes: BoxPart[] = []
+  let vitrine: CabinetLayout['vitrine'] = null
   const doors: DoorUnit[] = []
   // Parts go to the carcass until a door is open for building, then into that door.
   let into = boxes
@@ -176,6 +181,7 @@ export function layoutCabinet(c: ResolvedCabinet): CabinetLayout {
     boxes.push({ id: 'fascia', role: 'front', grain: 'x', size: [s.x1 - s.x0 - FRONT_GAP, yF1 - yF0, FRONT_THICKNESS], position: [(s.x0 + s.x1) / 2, (yF0 + yF1) / 2, frontBack + FRONT_THICKNESS / 2] })
     // Vitrine floor and its glass shelf, visible through the glazed door.
     box(`vitrine-floor-${s.side}`, 'body', 'x', sx0, sx1, yGlazedBottom - INNER_BOARD, yGlazedBottom, back + BACK_BOARD, frontBack - FRONT_GAP)
+    if (c.glazedSection !== 'none') vitrine = { min: [sx0, yGlazedBottom, back + BACK_BOARD], max: [sx1, yFasciaBottom, frontBack] }
     const yShelf = (yGlazedBottom + yFasciaBottom) / 2
     box(`glass-shelf-${s.side}`, 'shelf-glass', 'x', sx0 + 0.002, sx1 - 0.002, yShelf - SHELF_GLASS_THICKNESS / 2, yShelf + SHELF_GLASS_THICKNESS / 2, back + BACK_BOARD + 0.01, frontBack - 0.03)
 
@@ -203,5 +209,11 @@ export function layoutCabinet(c: ResolvedCabinet): CabinetLayout {
     })
   }
 
-  return { boxes, doors, bounds: { size: [W + 2 * TOP_OVERHANG, H, D + TOP_OVERHANG], centre: [0, H / 2, TOP_OVERHANG / 2] } }
+  return {
+    boxes,
+    doors,
+    bounds: { size: [W + 2 * TOP_OVERHANG, H, D + TOP_OVERHANG], centre: [0, H / 2, TOP_OVERHANG / 2] },
+    interior: { min: [xL, yBottom, back + BACK_BOARD], max: [xR, yTop, frontBack] },
+    vitrine,
+  }
 }
