@@ -18,12 +18,13 @@ Tags: [doc] official docs read during research · [forum] community thread read 
 | G11 | https://github.com/klich3/threejs-gltf-with-compressions-sample ; https://forum.babylonjs.com/t/how-to-use-ktx2-basis-compressed-normals/16021 [forum] |
 | G12 | https://www.khronos.org/news/press/khronos-pbr-neutral-tone-mapper-released-for-true-to-life-color-rendering-of-3d-products ; https://r3f.docs.pmnd.rs/api/canvas [doc] |
 | G13, G14 | https://drei.docs.pmnd.rs/staging/environment [doc] |
-| G15 | https://drei.docs.pmnd.rs/staging/contact-shadows ; https://drei.docs.pmnd.rs/staging/accumulative-shadows [doc]; ContactShadows rendering nothing on three 0.187 / drei 10.7.9, `frontend/src/scene/BakedFloorShadow.tsx` (settled-only bake, dense blur) [observed] |
+| G15 | https://drei.docs.pmnd.rs/staging/contact-shadows ; https://drei.docs.pmnd.rs/staging/accumulative-shadows [doc]; ContactShadows rendering nothing on three 0.187 / drei 10.7.9, `frontend/src/scene/BakedFloorShadow.tsx` (bake on caster change, dense blur) [observed] |
 | G16 | https://github.com/yomotsu/camera-controls ; https://drei.docs.pmnd.rs/staging/bounds [doc] |
 | G17, G18 | https://github.com/yomotsu/camera-controls [doc]; G18 also https://r3f.docs.pmnd.rs/advanced/scaling-performance [doc] |
 | G19 | https://r3f.docs.pmnd.rs/advanced/scaling-performance ; https://r3f.docs.pmnd.rs/api/canvas [doc] |
 | G21, G22, G23 | https://r3f.docs.pmnd.rs/advanced/pitfalls [doc] |
 | G26 | `frontend/src/scene/materials.ts` (`useWoodMaps`), drei 10.7.9 [observed] |
+| G27 | live site on a real GPU, moving vs settled frame, 2026-11-03; `frontend/scripts/perf-check/settle-diff.mjs` fails the GTAO build (up to 31 % of pixels differ) [observed] |
 
 Details inside verified rules that are not verified themselves:
 

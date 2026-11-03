@@ -193,7 +193,7 @@ export function shadowedWoodMaterial(wood: MeshStandardMaterial): MeshStandardMa
   let m = shadowed.get(wood)
   if (!m) {
     m = wood.clone()
-    m.color.multiplyScalar(0.5)
+    m.color.multiplyScalar(0.42)
     m.roughness = Math.min(1, wood.roughness + 0.15)
     const own = m
     wood.addEventListener('dispose', () => own.dispose())

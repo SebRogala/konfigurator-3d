@@ -1,7 +1,7 @@
-// Soft studio floor shadow, baked from the cabinet's underside whenever its geometry settles.
+// Soft studio floor shadow, baked from the cabinet's underside whenever its geometry changes.
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { DoubleSide, HalfFloatType, Matrix4, Mesh, OrthographicCamera, ShaderMaterial, WebGLRenderTarget, type Material, type Object3D, type Scene, type Texture, type WebGLRenderer } from 'three'
+import { DoubleSide, HalfFloatType, Mesh, OrthographicCamera, ShaderMaterial, WebGLRenderTarget, type Material, type Object3D, type Scene, type Texture, type WebGLRenderer } from 'three'
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js'
 import type { CabinetLayout } from './layout'
 import { PHONE } from './materials'
@@ -84,8 +84,8 @@ function halve(gl: WebGLRenderer, passes: Passes, src: Texture, dst: WebGLRender
 
 /**
  * The floor shadow: the cabinet's underside (legs, plinth, door bottoms) projected straight down, blurred into a tight
- * contact core plus a broad penumbra, like a softbox-lit studio floor. Baked on settled frames only (never while the
- * camera moves or a door swings), so orbit frames cost one textured quad. Only shadow-casting (opaque)
+ * contact core plus a broad penumbra, like a softbox-lit studio floor. Baked when the casters change (configuration,
+ * door swing), never on camera motion, so orbit frames cost one textured quad. Only shadow-casting (opaque)
  * meshes take part. Drawn from above only, like the rest of the ground.
  */
 export function BakedFloorShadow({ layout, doorsOpen }: { layout: CabinetLayout; doorsOpen: boolean }) {
@@ -144,8 +144,12 @@ export function BakedFloorShadow({ layout, doorsOpen }: { layout: CabinetLayout;
     [targets, passes, floor],
   )
 
-  useEffect(() => invalidate(), [w, d, cx, cz, layout, doorsOpen, invalidate])
-  const lastView = useRef(new Matrix4())
+  const dirty = useRef(true)
+  const baked = useRef(-1)
+  useEffect(() => {
+    dirty.current = true
+    invalidate()
+  }, [w, d, cx, cz, layout, doorsOpen, invalidate])
 
   const bake = (gl: WebGLRenderer, scene: Scene) => {
     const half = size / 2
@@ -187,15 +191,19 @@ export function BakedFloorShadow({ layout, doorsOpen }: { layout: CabinetLayout;
     gl.setClearAlpha(own.clear)
   }
 
-  // Priority 0.5: after the animators (0) mark this frame, before StudioRenderer (1) draws it.
-  // Bakes on every frame the camera holds still and nothing animates (the same frames that refresh the key light's
-  // shadow): that covers option changes, texture-tier swaps and the end of a swing, without tracking each one.
+  // Priority 0.5: after the animators (0) mark this frame, before StudioRenderer (1) draws it, so a new bake shows in
+  // the same frame as the change that caused it (no flash). Re-bakes only when the casters change: a configuration
+  // change, a door swing (Door marks motion.ts), or a caster mesh mounting (texture-tier swap, first load).
+  // Never on camera motion: the bake is view-independent, and the look must not change when the camera stops.
   useFrame((state) => {
-    const view = state.camera.matrixWorld
-    const cameraMoved = !view.equals(lastView.current)
-    lastView.current.copy(view)
-    if (cameraMoved || isAnimating()) return
+    let signature = 0
+    state.scene.traverse((o) => {
+      if (o instanceof Mesh && o.visible && o.castShadow) signature = (signature * 31 + o.id) % 2147483647
+    })
+    if (signature === baked.current && !dirty.current && !isAnimating()) return
     bake(state.gl, state.scene)
+    baked.current = signature
+    dirty.current = false
   }, 0.5)
 
   return (

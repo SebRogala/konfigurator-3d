@@ -1,6 +1,6 @@
 // Lighting evidence shots of /scene-check.html: default 3/4, interior with doors open, base contact, 3/4 close-up.
 // Usage: PLAYWRIGHT_DIR=<dir with playwright@1.56.1> [PHONE=1] node lighting.mjs <baseUrl> <outDir> [prefix]
-// PHONE=1 shoots at 390×844, below the 820 px breakpoint: the phone path (no AO pass, smaller shadow map).
+// PHONE=1 shoots at 390×844, below the 820 px breakpoint: the phone path (smaller shadow map and floor bake).
 import { createRequire } from 'node:module'
 import { mkdirSync } from 'node:fs'
 

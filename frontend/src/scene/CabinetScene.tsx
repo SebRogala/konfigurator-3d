@@ -25,8 +25,6 @@ const VIEW_PRESETS: Record<ViewPreset, [number, number]> = {
   top: [0, 0],
 }
 const BACKGROUND = '#f5f4f2'
-/** AO on desktop; `?ao=off` renders every frame as the moving (direct) frame, for the settle-frame pixel check. */
-const AMBIENT_OCCLUSION = !PHONE && new URLSearchParams(location.search).get('ao') !== 'off'
 
 /** The studio HDRI per texture tier: box-averaged 256×128 for the first frame, 512×256 as full on phones. */
 const HDRI: Record<TextureTier, string> = {
@@ -160,7 +158,7 @@ function CameraRig({
         invalidate()
       },
       snapshot() {
-        // Render (through the AO composer when mounted) and read back in the same tick: no preserveDrawingBuffer needed.
+        // Render and read back in the same tick: no preserveDrawingBuffer needed.
         advance(performance.now(), true)
         const url = gl.domElement.toDataURL('image/png')
         return fetch(url).then((r) => r.blob())
@@ -248,7 +246,7 @@ export function CabinetScene({
         </Suspense>
         {/* Directional key from the front-left: separates the front, side and top faces as in the reference. */}
         <KeyLight bounds={layout.bounds} />
-        <StudioRenderer ambientOcclusion={AMBIENT_OCCLUSION} />
+        <StudioRenderer />
         <BakedFloorShadow layout={layout} doorsOpen={doorsOpen} />
         <CameraRig bounds={layout.bounds} onReady={onReady} controlsRef={controlsRef} />
         {children}

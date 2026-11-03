@@ -1,6 +1,6 @@
 /**
- * Per-frame "the scene geometry is animating" flag, shared by the animators (Door) and the frame consumers that must
- * hold expensive work until everything settles (StudioRenderer's AO and shadow refresh, the floor-shadow bake).
+ * Per-frame "the scene geometry is animating" flag: Door marks it while it swings, so the floor-shadow bake follows
+ * the door. Never keyed to camera motion: no render state may differ between a moving and a still camera.
  * Animators mark from their useFrame (priority 0); consumers read at priority > 0 in the same frame; the renderer
  * ends the frame.
  */

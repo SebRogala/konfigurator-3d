@@ -43,8 +43,11 @@ Each rule carries a tag: the stage it applies from, and the trigger that makes i
   Why: drei presets fetch from a CDN, and the drei docs say they are not meant for production.
 - **G14** `stage 1 · dark or glossy fronts` Add `<Lightformer>` softboxes inside `<Environment frames={1}>`.
   Why: dark fronts look flat when nothing bright is there to reflect.
-- **G15** `stage 1 · grounding the object` Ground the object with a soft shadow that follows its footprint and updates when a dimension changes. On the installed versions, bake the key light's shadow into a floor texture once the scene settles and blur it with a dense kernel (`frontend/src/scene/BakedFloorShadow.tsx`); a sparse blur leaves bands.
+- **G15** `stage 1 · grounding the object` Ground the object with a soft shadow that follows its footprint and updates when a dimension changes. On the installed versions, bake the cabinet's underside into a floor texture when the casters change (configuration, door swing; never on camera motion) and blur it with a dense kernel (`frontend/src/scene/BakedFloorShadow.tsx`); a sparse blur leaves bands.
   Why: a floating object reads as fake. drei `ContactShadows` drew nothing on the installed versions, even with a red shadow colour.
+
+- **G27** `stage 1 · lighting, AO or any per-frame effect` Render every frame through one path: the same passes, lights, shadow-map refresh and environment whether the camera moves or not. Get occlusion from constant techniques (analytic cavity shading, darker recess materials, `frontend/src/scene/interiorOcclusion.ts`), not a pass added once the view settles. Check moving vs settled frames for pixel identity (`frontend/scripts/perf-check/settle-diff.mjs`) and keep the source guard `frontend/tests/renderConsistency.test.ts`.
+  Why: a settled-frame-only GTAO layer made the vitrine darker and the black fronts lighter each time the camera stopped on a real GPU, while headless SwiftShader showed no brightening.
 - **G16** `stage 1 · a dimension change` Re-frame with CameraControls `fitToBox(box, true)` on slider release, not on every tick.
   Why: refitting on every tick makes the view swim.
 - **G17** `stage 0 · orbit controls` Limit polar angles, azimuth (about ±100°) and distance.
