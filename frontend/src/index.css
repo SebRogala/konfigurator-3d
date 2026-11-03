@@ -148,11 +148,11 @@ h2, h3, h4, p { margin: 0; }
 .viewer__toggle svg { width: 14px; height: 14px; }
 .viewer__toggle[aria-expanded="true"] { background: var(--bar); color: #fff; border-color: var(--bar); }
 .viewer__menu {
-  margin-top: 8px; width: 232px; padding: 14px; display: grid; gap: 8px; background: var(--card);
+  margin-top: 8px; width: 256px; padding: 14px; display: grid; gap: 8px; background: var(--card);
   border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 10px 30px rgba(0,0,0,.12);
 }
 .viewer__label { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
-.viewer__row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.viewer__row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .viewer__btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); font-size: 13px; font-weight: 600; text-align: center; }
 .viewer__btn:hover { background: #ecebe8; }
 .viewer__btn--wide { justify-content: flex-start; }

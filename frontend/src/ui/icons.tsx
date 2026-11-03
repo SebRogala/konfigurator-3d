@@ -64,3 +64,17 @@ export const ExitFullscreenIcon = () => (
     <path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5" />
   </Icon>
 )
+
+/** Back view: an arrow up to a bar (the far side). */
+export const BackViewIcon = () => (
+  <Icon>
+    <path d="M5 4h14M12 20V8M8 12l4-4 4 4" />
+  </Icon>
+)
+
+/** Top view: an arrow down onto the cabinet's top. */
+export const TopViewIcon = () => (
+  <Icon>
+    <path d="M12 3v11M8 10l4 4 4-4M5 20h14" />
+  </Icon>
+)

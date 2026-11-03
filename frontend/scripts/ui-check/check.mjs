@@ -143,13 +143,14 @@ expect((await page.locator('#viewer-menu').count()) === 0, 'outside click did no
 // Every menu item carries one aria-hidden icon before its label.
 await panelToggle.click()
 const icons = await page.evaluate(() => [...document.querySelectorAll('#viewer-menu .viewer__btn')].map((b) => ({ t: b.textContent.trim(), ok: b.firstElementChild?.matches('svg.icon[aria-hidden="true"]') && b.querySelectorAll('svg').length === 1 })))
-expect(icons.length === 6 && icons.every((i) => i.ok), `menu icons: ${JSON.stringify(icons)}`)
+expect(icons.map((i) => i.t).slice(0, 5).join('|') === 'Przód|3/4|Bok|Tył|Góra', `camera order: ${icons.map((i) => i.t).join('|')}`)
+expect(icons.length === 8 && icons.every((i) => i.ok), `menu icons: ${JSON.stringify(icons)}`)
 expect((await page.locator('#viewer-menu .viewer__label svg').count()) === 0, 'section header has an icon')
 await page.locator('#viewer-menu').screenshot({ path: `${shots}/viewer-menu.png` })
 await panelToggle.click()
 const viewShot = () => page.locator('.viewport canvas').screenshot()
 await panelToggle.click()
-for (const preset of ['front', 'side', 'three-quarter']) {
+for (const preset of ['front', 'side', 'back', 'top', 'three-quarter']) {
   const before = await viewShot()
   await page.locator(`[data-view="${preset}"]`).click()
   await page.waitForTimeout(1500)

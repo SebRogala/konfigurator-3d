@@ -50,6 +50,8 @@ declare global {
     cameraState?: () => CameraState
     /** Current hinge rotation (degrees) per door id. */
     doorAngles?: () => Record<string, number>
+    /** Orbits to exact angles (radians) without animation, for 360° evidence shots. */
+    setCameraAngles?: (azimuth: number, polar: number) => void
     /** Swaps the rendered cabinet without reloading, so interact.mjs can check what a live option change does to the camera. */
     setSceneConfig?: (name: string) => void
     /** The scene's viewer controls (setView, snapshot), for interact.mjs. */
@@ -63,6 +65,7 @@ function CameraProbe({ cabinet: c }: { cabinet: ResolvedCabinet }) {
   const camera = useThree((s) => s.camera) as PerspectiveCamera
   const aspect = useThree((s) => s.size.width / Math.max(1, s.size.height))
   const scene = useThree((s) => s.scene)
+  const invalidate = useThree((s) => s.invalidate)
   useEffect(() => {
     window.doorAngles = () => {
       const out: Record<string, number> = {}
@@ -72,6 +75,13 @@ function CameraProbe({ cabinet: c }: { cabinet: ResolvedCabinet }) {
       return out
     }
   }, [scene])
+  useEffect(() => {
+    window.setCameraAngles = (azimuth, polar) => {
+      if (!controls) throw new Error('Camera controls not mounted')
+      void controls.rotateTo(azimuth, polar, false)
+      invalidate()
+    }
+  }, [controls, invalidate])
   useEffect(() => {
     window.cameraState = () => {
       if (!controls) throw new Error('Camera controls not mounted')

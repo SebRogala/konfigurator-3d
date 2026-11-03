@@ -11,7 +11,11 @@ const BOTTOM_BOARD = 0.045
 /** Open space under the raised bottom rail, between the side legs. */
 const BASE_CLEARANCE = 0.07
 const INNER_BOARD = 0.018 // divider, vitrine floor
+/** Depth of the rebate at the carcass back; the thin back panel sits at its front. Interior parts start in front of it. */
 const BACK_BOARD = 0.012
+const BACK_PANEL_THICKNESS = 0.004 // HDF
+/** How far the back panel runs into the sides, top and bottom grooves (hidden inside them). */
+const BACK_PANEL_GROOVE = 0.008
 const FRONT_THICKNESS = 0.018
 const FRONT_GAP = 0.003 // G4: keeps fronts off the carcass faces
 const FRONT_RECESS = 0.002
@@ -86,7 +90,9 @@ export function layoutCabinet(c: ResolvedCabinet): CabinetLayout {
   box('side-right', 'body', 'y', xR, W / 2, 0, yTop, back, front)
   box('top', 'body', 'x', -W / 2 - TOP_OVERHANG, W / 2 + TOP_OVERHANG, yTop, H, back, front + TOP_OVERHANG)
   box('bottom', 'body', 'x', xL, xR, BASE_CLEARANCE, yBottom, back + BACK_BOARD, front)
-  box('back', 'body', 'y', xL, xR, yBottom, yTop, back, back + BACK_BOARD)
+  // Thin back panel set into the rebate: its edges run into the carcass grooves, its back face stays inside the
+  // carcass's back plane, so a rear view shows the side/top back edges framing a recessed panel.
+  box('back', 'body', 'y', xL - BACK_PANEL_GROOVE, xR + BACK_PANEL_GROOVE, yBottom - BACK_PANEL_GROOVE, yTop + BACK_PANEL_GROOVE, back + BACK_BOARD - BACK_PANEL_THICKNESS, back + BACK_BOARD)
 
   const frontBack = front - FRONT_RECESS - FRONT_THICKNESS
   // The fronts' zone ends under the metal strip.

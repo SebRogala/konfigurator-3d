@@ -120,7 +120,7 @@ await shot('zoom-after-resize-burst')
 await expectKept('resize burst')
 
 // Viewer controls: presets keep the user's zoom ratio; snapshot returns a non-empty PNG.
-const PRESETS = { front: [0, 85], 'three-quarter': [20, 80], side: [70, 85] }
+const PRESETS = { front: [0, 85], 'three-quarter': [20, 80], side: [90, 85] }
 await page.setViewportSize({ width: 900, height: 1000 })
 await setConfig('reference')
 await settle()
@@ -205,6 +205,33 @@ for (const open of [true, false]) {
   if (lastMid > 700) failures.push(`${open ? 'open' : 'close'}: last in-flight frame at ${lastMid} ms, expected the swing to end ≈600 ms`)
 }
 await shot('doors-closed')
+
+// Full sphere: four horizontal quarters, straight down, from below, and the new presets.
+await setConfig('reference')
+await page.evaluate(() => window.sceneControls().setView('three-quarter'))
+await settle()
+await page.mouse.move(450, 500)
+for (let i = 0; i < 30 && (await state()).zoomRatio > 1.05; i++) {
+  await page.mouse.wheel(0, -60)
+  await page.waitForTimeout(100)
+}
+await settle()
+for (const [label, az, polar] of [['az0', 0, 80], ['az90', 90, 80], ['az180', 180, 80], ['az270', 270, 80], ['straight-down', 0, 0], ['from-below', 30, 180]]) {
+  await page.evaluate(([a, p]) => window.setCameraAngles((a * Math.PI) / 180, (p * Math.PI) / 180), [az, polar])
+  await shot(`orbit360-${label}`)
+  const st = await state()
+  if (!Number.isFinite(st.distance) || !Number.isFinite(st.polar)) failures.push(`orbit360 ${label}: camera state not finite`)
+}
+for (const [preset, az, polar] of [['back', 180, 85], ['top', 0, 0]]) {
+  await page.evaluate((p) => window.sceneControls().setView(p), preset)
+  await settle()
+  const st = await state()
+  // Azimuth may wrap by whole turns after free orbiting.
+  const dAz = Math.abs(Math.atan2(Math.sin(st.azimuth - (az * Math.PI) / 180), Math.cos(st.azimuth - (az * Math.PI) / 180)))
+  // At the pole camera-controls keeps a tiny epsilon off 0.
+  if (Math.abs(st.polar - (polar * Math.PI) / 180) > 0.01 || (polar !== 0 && dAz > ANGLE_TOL)) failures.push(`preset ${preset}: angles ${st.azimuth}, ${st.polar}`)
+  await shot(`preset-${preset}`)
+}
 
 // Handles on the lower doors, front view: wide and equal splits.
 for (const c of ['reference', 'split-equal', 'glazed-right-smoked']) {

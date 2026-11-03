@@ -3,7 +3,7 @@
 
 import type { Ref } from 'react'
 
-export type ViewPreset = 'front' | 'three-quarter' | 'side'
+export type ViewPreset = 'front' | 'three-quarter' | 'side' | 'back' | 'top'
 
 /** Imperative handle CabinetScene exposes through its `controlsRef` prop. */
 export interface SceneControls {

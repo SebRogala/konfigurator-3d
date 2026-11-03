@@ -14,14 +14,14 @@ const DEG = Math.PI / 180
 // The reference photo's 3/4 view: from the front-right, slightly above the cabinet's middle.
 const VIEW_AZIMUTH = 20 * DEG
 const VIEW_POLAR = 80 * DEG
-// Inside ±90° so the camera always stays in front of the back panel's plane, at every distance.
-const MAX_AZIMUTH = 75 * DEG
 const TARGET_HEIGHT_RATIO = 0.47
-/** View presets as [azimuth, polar]; 'three-quarter' is the default framing. Side stays inside the azimuth limit. */
+/** View presets as [azimuth, polar]; 'three-quarter' is the default framing; 'top' looks straight down. */
 const VIEW_PRESETS: Record<ViewPreset, [number, number]> = {
   front: [0, 85 * DEG],
   'three-quarter': [VIEW_AZIMUTH, VIEW_POLAR],
-  side: [70 * DEG, 85 * DEG],
+  side: [90 * DEG, 85 * DEG],
+  back: [180 * DEG, 85 * DEG],
+  top: [0, 0],
 }
 const BACKGROUND = '#f5f4f2'
 
@@ -51,7 +51,8 @@ const StudioLighting = memo(function StudioLighting() {
 /** Orbit distance limits on this canvas: one source for the controls' min/max, refits and presets. */
 function distanceLimits(size: [number, number, number], fov: number, aspect: number): [number, number] {
   // The widest fit any allowed azimuth can need, so the maximum never blocks a refit.
-  const worstFit = Math.max(fitDistance(size, 0, fov, aspect), fitDistance(size, MAX_AZIMUTH, fov, aspect))
+  let worstFit = 0
+  for (let a = 0; a <= 90; a += 5) worstFit = Math.max(worstFit, fitDistance(size, a * DEG, fov, aspect))
   return [fitDistance(size, 0, fov, aspect) * 0.6, worstFit * 2]
 }
 
@@ -62,7 +63,8 @@ function clampDistance(distance: number, size: [number, number, number], fov: nu
 
 /**
  * Orbit controls plus framing: refits distance and target when a dimension or the canvas aspect changes,
- * keeping the user's orbit angle (G16, G17).
+ * keeping the user's orbit angle (G16). Orbit is a full sphere (Operator decision, deviates from G17): the back,
+ * underside and a ground that renders from above only are modelled for it.
  */
 function CameraRig({
   bounds,
@@ -161,10 +163,9 @@ function CameraRig({
     <CameraControls
       ref={controls}
       makeDefault
-      minAzimuthAngle={-MAX_AZIMUTH}
-      maxAzimuthAngle={MAX_AZIMUTH}
-      minPolarAngle={35 * DEG}
-      maxPolarAngle={88 * DEG}
+      // Full sphere: any azimuth, straight down to straight below; camera-controls keeps the poles from flipping.
+      minPolarAngle={0}
+      maxPolarAngle={Math.PI}
       minDistance={minDistance}
       maxDistance={maxDistance}
       dollySpeed={0.5}

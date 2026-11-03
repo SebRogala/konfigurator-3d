@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactElement, type RefObject } from 'react'
 import type { SceneControls, ViewPreset } from '../contract/sceneControls'
-import { CameraIcon, DoorClosedIcon, DoorOpenIcon, ExitFullscreenIcon, FrontViewIcon, FullscreenIcon, SideViewIcon, ThreeQuarterViewIcon } from './icons'
+import { BackViewIcon, CameraIcon, DoorClosedIcon, DoorOpenIcon, ExitFullscreenIcon, FrontViewIcon, FullscreenIcon, SideViewIcon, ThreeQuarterViewIcon, TopViewIcon } from './icons'
 
 interface Props {
   controls: RefObject<SceneControls | null>
@@ -15,6 +15,8 @@ const VIEWS: [ViewPreset, string, () => ReactElement][] = [
   ['front', 'Przód', FrontViewIcon],
   ['three-quarter', '3/4', ThreeQuarterViewIcon],
   ['side', 'Bok', SideViewIcon],
+  ['back', 'Tył', BackViewIcon],
+  ['top', 'Góra', TopViewIcon],
 ]
 
 /** "Sterowanie": collapsed overlay menu for view-only controls (camera, doors, snapshot, fullscreen). */
