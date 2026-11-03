@@ -6,16 +6,17 @@ All paths are under `frontend/src/`.
 
 | Module | Holds | May import |
 |---|---|---|
-| `contract/` | `ResolvedCabinet` and its keys (`WoodKey`, `FrontFinish`, `GlazedSection`, `GlassKey`, `HandleKey`): the seam between configurator and scene | nothing |
-| `model/` | the `Catalog` type, `FIELD_IDS`, `Selection`, rules (`isFieldActive`), `resolveCabinet`, `totalPrice` / `priceLines` | `contract/` only; no React, no three.js, no I/O |
+| `contract/` | `cabinet.ts`: `ResolvedCabinet` and its keys (`WoodKey`, `FrontFinish`, `SectionSplit`, `GlazedSection`, `GlassKey`, `HandleKey`), the configuration seam. `sceneControls.ts`: `SceneControls` and `SceneViewProps`, the view seam | React types only |
+| `model/` | the `Catalog` type, `FIELD_IDS` (range and option fields), `Selection`, range arithmetic (`range.ts`), rules (`isFieldActive`), `resolveCabinet`, `totalPrice` / `priceLines` | `contract/` only; no React, no three.js, no I/O |
 | `catalog/` | `MOCK_CATALOG`: data only, one `Catalog` value | `contract/` and `model/` types |
-| `ui/` | header, steps, swatches, summary; `STEPS` (which fields each step shows) | `model/`, `contract/` types |
-| `scene/` | layout, geometry, materials, camera, lighting | `contract/` only |
+| `ui/` | header, steps, swatches, range inputs, summary, the "Sterowanie" viewer panel (`ViewerControls`); `STEPS` (which fields each step shows) | `model/`, `contract/` types |
+| `scene/` | layout (carcass boxes and door units), animated doors (`Door.tsx`), geometry, materials, camera, lighting | `contract/` only |
 | `App.tsx`, `main.tsx` | wiring: `main.tsx` passes the catalog to `App` as a prop | all of the above |
 
 Keep these boundaries:
 
 - Render the scene from a `ResolvedCabinet`. The scene knows no prices and no option ids.
+- Pass view state to the scene only through `contract/sceneControls.ts`: `doorsOpen` as a prop, and the `SceneControls` handle (`setView`, `snapshot`) through `controlsRef`. View state never enters `Selection`, the URL or the price.
 - Pass the catalog into the model functions and components as an argument. No module imports the mock catalog except `main.tsx`.
 - Keep `model/` pure, so a backend can reuse `totalPrice` to validate a price.
 
@@ -27,7 +28,6 @@ The pricing model and the price-data rules live in [conventions.md](conventions.
 |---|---|---|
 | Tolerant selection parsing | `model/` — `parseSelection(catalog, raw)` | Falls back to the default per field on an unknown id. `findChoice` stays strict as an internal invariant. |
 | Catalog source swap | `catalog/source.ts` — `loadCatalog(): Promise<Catalog>`, with `mock.ts` and `medusa.ts` | `App` awaits it; the scene stays untouched. |
-| Doors open on click | `scene/layout.ts` emits door units (`{ id, hingeSide, pivot, parts, handle? }`); new `scene/Door.tsx` animates them and invalidates while moving under `frameloop="demand"` | The open state is local to the scene: not in `Selection`, the URL or the price. |
 | LED in the glazed section | catalog field `led` in the Akcesoria step; `ResolvedCabinet.led: boolean`; `layout.lights[]`; new `scene/VitrineLight.tsx` | See the decisions below. |
 | Configuration in the URL | `state/selectionUrl.ts` (pure encode/decode, `node:test`); `state/useSelection.ts` replaces `useState` in `App` | Decodes through `parseSelection`. |
 | Stage 2: base product | a Medusa product with one variant; its native price is the base price | |
@@ -36,11 +36,13 @@ The pricing model and the price-data rules live in [conventions.md](conventions.
 | Stage 2: cart UI | `frontend/src/commerce/` | The header total stays a preview. |
 | Stage 2: deploy | `backend` service on the `infra` network in the root compose file; a second Coolify app with base directory `/backend` | The frontend gets the Medusa URL and publishable key at build time. |
 
+Built since the plan: door units in `scene/layout.ts` (`DoorUnit`), animated by `scene/Door.tsx`; the open state comes from the "Sterowanie" panel through the view seam.
+
 ## Decisions
 
 Decided by the Operator, 2026-11-03:
 
-- Build door units and `parseSelection` in the homes above, as part of the tier 2 work that needs them.
+- Build `parseSelection` in the home above, as part of the tier 2 URL work.
 - Make LED lighting a priced option in the Akcesoria step: a flat surcharge, active only when a section is glazed.
 - Encode the configuration in the URL as readable query params (for example `?w=1100&front=black`), decoded through `parseSelection`.
 - Start the shared model as `frontend/src/model/`. Revisit this in stage 2.
